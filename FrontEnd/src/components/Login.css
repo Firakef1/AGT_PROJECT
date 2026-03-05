@@ -10,7 +10,8 @@
     --input-bg: #f8fafc;
     --notice-bg: rgba(255, 255, 255, 0.05);
     --notice-border: rgba(255, 255, 255, 0.1);
-    --shadow-card: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    --shadow-card:
+        0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
 }
 
 .login-container {
@@ -21,7 +22,11 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
-    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-family:
+        "Inter",
+        -apple-system,
+        system-ui,
+        sans-serif;
 }
 
 .login-card {
@@ -256,7 +261,7 @@
     transition: all 0.2s;
 }
 
-.checkbox-wrap input:checked~.checkmark {
+.checkbox-wrap input:checked ~ .checkmark {
     background: var(--primary-yellow);
     border-color: var(--primary-yellow);
 }
@@ -274,7 +279,7 @@
     transform: rotate(45deg);
 }
 
-.checkbox-wrap input:checked~.checkmark:after {
+.checkbox-wrap input:checked ~ .checkmark:after {
     display: block;
 }
 
@@ -382,4 +387,216 @@
         margin-top: 24px;
         margin-bottom: 24px;
     }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Division Selector — collapsible dropdown
+   A single trigger row that expands a list on click and collapses
+   after a selection or an outside click.
+   All variables reuse the existing Login.css :root tokens.
+   ══════════════════════════════════════════════════════════════════ */
+
+.div-selector-wrap {
+    margin-bottom: 20px;
+    position: relative; /* dropdown is positioned relative to this */
+}
+
+/* Label — identical weight / size to existing .form-group label */
+.div-selector-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+}
+
+/* ── Trigger button ────────────────────────────────────────────── */
+/* Intentionally mimics the existing .input-box inputs so it sits  */
+/* naturally in the form without drawing extra attention.           */
+.div-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 11px 13px;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    background: var(--input-bg);
+    color: var(--text-dark);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.div-trigger:hover {
+    border-color: var(--primary-yellow);
+    background: #fffdf5;
+}
+
+/* Open state — mirrors the :focus style of the other inputs */
+.div-trigger--open {
+    border-color: var(--primary-yellow);
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.12);
+    outline: none;
+}
+
+.div-trigger__icon {
+    color: #94a3b8;
+    flex-shrink: 0;
+    transition: color 0.2s;
+}
+
+.div-trigger--open .div-trigger__icon {
+    color: var(--primary-yellow-hover);
+}
+
+.div-trigger__label {
+    flex: 1;
+}
+
+/* Chevron — rotates 180° when the list is open */
+.div-trigger__chevron {
+    color: #94a3b8;
+    flex-shrink: 0;
+    transition:
+        transform 0.2s ease,
+        color 0.2s;
+}
+
+.div-trigger__chevron--open {
+    transform: rotate(180deg);
+    color: var(--primary-yellow-hover);
+}
+
+/* ── Dropdown panel ────────────────────────────────────────────── */
+.div-dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    box-shadow:
+        0 10px 25px -5px rgba(0, 0, 0, 0.12),
+        0 4px 8px -4px rgba(0, 0, 0, 0.08);
+    z-index: 200;
+    overflow: hidden;
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    animation: divDropIn 0.15s ease;
+}
+
+@keyframes divDropIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ── Each row inside the dropdown ──────────────────────────────── */
+.div-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    background: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-gray);
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.13s;
+}
+
+.div-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.div-dropdown-item:hover {
+    background: #fffbeb;
+    color: var(--text-dark);
+}
+
+/* Active / currently selected row */
+.div-dropdown-item--active {
+    background: #fefce8;
+    color: var(--sidebar-bg);
+    font-weight: 600;
+}
+
+.div-dropdown-item--active:hover {
+    background: #fef9c3;
+}
+
+/* Coming-soon rows are dimmed but still clickable */
+.div-dropdown-item--soon {
+    opacity: 0.62;
+}
+
+/* Small icon bubble to the left of each division name */
+.div-dropdown-item__icon-wrap {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #64748b;
+    transition:
+        background 0.13s,
+        color 0.13s;
+}
+
+.div-dropdown-item--active .div-dropdown-item__icon-wrap {
+    background: rgba(250, 204, 21, 0.22);
+    color: var(--sidebar-bg);
+}
+
+.div-dropdown-item__label {
+    flex: 1;
+}
+
+/* Checkmark shown next to the currently selected option */
+.div-dropdown-item__check {
+    color: var(--primary-yellow-hover);
+    flex-shrink: 0;
+}
+
+/* ── "Soon" badge ──────────────────────────────────────────────── */
+/* Shared between the trigger and dropdown rows                     */
+.div-badge {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: var(--border-light);
+    color: #94a3b8;
+    padding: 2px 5px;
+    border-radius: 4px;
+    line-height: 1.4;
+}
+
+/* ── Hint line below the trigger ───────────────────────────────── */
+.div-selector-hint {
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: #94a3b8;
+    line-height: 1.5;
 }
