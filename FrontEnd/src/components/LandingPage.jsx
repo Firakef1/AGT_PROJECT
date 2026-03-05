@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './LandingPage.css';
-import { Plus, Heart, Cpu, Share2, Mail } from 'lucide-react';
+import { Plus, Heart, Cpu, Share2, Mail, Menu, X } from 'lucide-react';
 import RegistrationModal from './RegistrationModal';
 
 import heroVideo from '../assets/30TH.mp4';
@@ -18,6 +18,9 @@ const LogoIcon = () => (
 
 const LandingPage = ({ onLogin }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  const closeMobileNav = () => setIsMobileNavOpen(false);
 
   return (
     <>
@@ -38,8 +41,26 @@ const LandingPage = ({ onLogin }) => {
             <div className="nav-actions">
               <button className="btn-register-nav" onClick={() => setIsModalOpen(true)}>Register</button>
               <button className="btn-login-nav" onClick={onLogin}>Login</button>
+              {/* Hamburger — mobile only */}
+              <button
+                className="btn-hamburger"
+                onClick={() => setIsMobileNavOpen(prev => !prev)}
+                aria-label="Toggle menu"
+              >
+                {isMobileNavOpen ? <X size={22} /> : <Menu size={22} />}
+              </button>
             </div>
           </div>
+
+          {/* Mobile Dropdown Menu */}
+          {isMobileNavOpen && (
+            <div className="mobile-nav">
+              <a href="#home" onClick={closeMobileNav}>Home</a>
+              <a href="#about" onClick={closeMobileNav}>About</a>
+              <a href="#fellowship" onClick={closeMobileNav}>Fellowship</a>
+              <a href="#events" onClick={closeMobileNav}>Events</a>
+            </div>
+          )}
         </nav>
 
         {/* Hero Section */}

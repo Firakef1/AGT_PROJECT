@@ -17,6 +17,7 @@ const RegistrationModal = ({ isOpen, onClose }) => {
     });
 
     const [photoPreview, setPhotoPreview] = useState(null);
+    const [submitted, setSubmitted] = useState(false);
 
     if (!isOpen) return null;
 
@@ -39,14 +40,17 @@ const RegistrationModal = ({ isOpen, onClose }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Here you would typically send the data to a backend
         console.log('Registration Data:', formData);
-        alert('Registration submitted successfully!');
-        onClose();
+        setSubmitted(true);
+        // Auto-close after 4.5 seconds
+        setTimeout(() => {
+            setSubmitted(false);
+            onClose();
+        }, 10000);
     };
 
     return (
-        <div className="modal-backdrop" onClick={onClose}>
+        <div className="modal-backdrop" onClick={!submitted ? onClose : undefined}>
             <div className="modal-container" onClick={e => e.stopPropagation()}>
                 <button className="modal-close-btn" onClick={onClose}>
                     <X size={24} />
@@ -57,156 +61,167 @@ const RegistrationModal = ({ isOpen, onClose }) => {
                     <p className="modal-subtitle">Register to become a part of ASTU Gibi Gubae.</p>
                 </div>
 
-                <form className="registration-form" onSubmit={handleSubmit}>
-
-                    {/* Photo Upload Section */}
-                    <div className="form-section-photo">
-                        <div className="photo-upload-wrapper">
-                            {photoPreview ? (
-                                <img src={photoPreview} alt="Profile Preview" className="photo-preview" />
-                            ) : (
-                                <div className="photo-placeholder">
-                                    <Upload size={32} className="upload-icon" />
-                                    <span>Upload Photo</span>
-                                </div>
-                            )}
-                            <input
-                                type="file"
-                                id="profilePhoto"
-                                name="profilePhoto"
-                                accept="image/*"
-                                onChange={handlePhotoChange}
-                                className="photo-input"
-                            />
-                        </div>
+                {submitted ? (
+                    <div className="registration-success">
+                        <div className="success-icon">👍</div>
+                        <h3 className="success-title">Thank you for registering!</h3>
+                        <p className="success-message">
+                            Your registration has been received. You will be added to the community soon after verification.
+                        </p>
+                        <p className="success-sub">This window will close automatically…</p>
                     </div>
+                ) : (
+                    <form className="registration-form" onSubmit={handleSubmit}>
 
-                    <div className="form-grid">
-                        <div className="form-group">
-                            <label htmlFor="memberId">Member ID</label>
-                            <input
-                                type="text"
-                                id="memberId"
-                                name="memberId"
-                                value={formData.memberId}
-                                onChange={handleChange}
-                                required
-                                placeholder="e.g. UGR/000001/18"
-                            />
+                        {/* Photo Upload Section */}
+                        <div className="form-section-photo">
+                            <div className="photo-upload-wrapper">
+                                {photoPreview ? (
+                                    <img src={photoPreview} alt="Profile Preview" className="photo-preview" />
+                                ) : (
+                                    <div className="photo-placeholder">
+                                        <Upload size={32} className="upload-icon" />
+                                        <span>Upload Photo</span>
+                                    </div>
+                                )}
+                                <input
+                                    type="file"
+                                    id="profilePhoto"
+                                    name="profilePhoto"
+                                    accept="image/*"
+                                    onChange={handlePhotoChange}
+                                    className="photo-input"
+                                />
+                            </div>
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="fullName">Full Name</label>
-                            <input
-                                type="text"
-                                id="fullName"
-                                name="fullName"
-                                value={formData.fullName}
-                                onChange={handleChange}
-                                required
-                                placeholder="John Doe"
-                            />
+                        <div className="form-grid">
+                            <div className="form-group">
+                                <label htmlFor="memberId">Member ID</label>
+                                <input
+                                    type="text"
+                                    id="memberId"
+                                    name="memberId"
+                                    value={formData.memberId}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="e.g. UGR/000001/18"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="fullName">Full Name</label>
+                                <input
+                                    type="text"
+                                    id="fullName"
+                                    name="fullName"
+                                    value={formData.fullName}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="John Doe"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="gender">Gender</label>
+                                <select
+                                    id="gender"
+                                    name="gender"
+                                    value={formData.gender}
+                                    onChange={handleChange}
+                                    required
+                                >
+                                    <option value="" disabled>Select gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="phoneNumber">Phone Number</label>
+                                <input
+                                    type="tel"
+                                    id="phoneNumber"
+                                    name="phoneNumber"
+                                    value={formData.phoneNumber}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="+251 912 345 678"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="email">Email</label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="john@example.com"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="dateJoined">Date Joined</label>
+                                <input
+                                    type="date"
+                                    id="dateJoined"
+                                    name="dateJoined"
+                                    value={formData.dateJoined}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="birthday">Birthday</label>
+                                <input
+                                    type="date"
+                                    id="birthday"
+                                    name="birthday"
+                                    value={formData.birthday}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="status">Status</label>
+                                <select
+                                    id="status"
+                                    name="status"
+                                    value={formData.status}
+                                    onChange={handleChange}
+                                    required
+                                >
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                    <option value="Visitor">Visitor</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group full-width">
+                                <label htmlFor="address">Address</label>
+                                <textarea
+                                    id="address"
+                                    name="address"
+                                    value={formData.address}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Current residential address..."
+                                    rows="3"
+                                />
+                            </div>
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="gender">Gender</label>
-                            <select
-                                id="gender"
-                                name="gender"
-                                value={formData.gender}
-                                onChange={handleChange}
-                                required
-                            >
-                                <option value="" disabled>Select gender</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                            </select>
+                        <div className="modal-actions">
+                            <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
+                            <button type="submit" className="btn-submit">Submit Registration</button>
                         </div>
-
-                        <div className="form-group">
-                            <label htmlFor="phoneNumber">Phone Number</label>
-                            <input
-                                type="tel"
-                                id="phoneNumber"
-                                name="phoneNumber"
-                                value={formData.phoneNumber}
-                                onChange={handleChange}
-                                required
-                                placeholder="+251 912 345 678"
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label htmlFor="email">Email</label>
-                            <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                required
-                                placeholder="john@example.com"
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label htmlFor="dateJoined">Date Joined</label>
-                            <input
-                                type="date"
-                                id="dateJoined"
-                                name="dateJoined"
-                                value={formData.dateJoined}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label htmlFor="birthday">Birthday</label>
-                            <input
-                                type="date"
-                                id="birthday"
-                                name="birthday"
-                                value={formData.birthday}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label htmlFor="status">Status</label>
-                            <select
-                                id="status"
-                                name="status"
-                                value={formData.status}
-                                onChange={handleChange}
-                                required
-                            >
-                                <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
-                                <option value="Visitor">Visitor</option>
-                            </select>
-                        </div>
-
-                        <div className="form-group full-width">
-                            <label htmlFor="address">Address</label>
-                            <textarea
-                                id="address"
-                                name="address"
-                                value={formData.address}
-                                onChange={handleChange}
-                                required
-                                placeholder="Current residential address..."
-                                rows="3"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="modal-actions">
-                        <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
-                        <button type="submit" className="btn-submit">Submit Registration</button>
-                    </div>
-                </form>
+                    </form>
+                )}
             </div>
         </div>
     );

@@ -232,6 +232,82 @@
     transform: translateY(-1px);
 }
 
+/* Registration Success Notification */
+.registration-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2.5rem;
+    text-align: center;
+    animation: fadeInSuccess 0.4s ease;
+    min-height: 300px;
+}
+
+@keyframes fadeInSuccess {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.success-icon {
+    font-size: 4rem;
+    margin-bottom: 1.25rem;
+    animation: bounceThumbs 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+@keyframes bounceThumbs {
+    from {
+        transform: scale(0.4) rotate(-15deg);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+.success-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 0.75rem 0;
+}
+
+.success-message {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #475569;
+    max-width: 380px;
+    margin: 0 0 1.5rem 0;
+}
+
+.success-sub {
+    font-size: 0.85rem;
+    color: #94A3B8;
+    margin: 0;
+    animation: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.45;
+    }
+}
+
 /* Custom Scrollbar for Modal */
 .modal-container::-webkit-scrollbar {
     width: 8px;
@@ -246,11 +322,52 @@
     border-radius: 20px;
 }
 
-/* Responsive constraints */
-@media (max-width: 640px) {
+/* =============================================
+   Responsive Breakpoints for Modal
+   - 768px : Tablet
+   - 480px : Mobile Phone
+   ============================================= */
+
+/* --- Tablet (≤ 768px) --- */
+@media (max-width: 768px) {
+    .modal-backdrop {
+        padding: 0.5rem;
+        align-items: flex-start;
+        overflow-y: auto;
+    }
+
     .modal-container {
-        max-height: 100vh;
+        max-width: 100%;
+        border-radius: 1rem;
+        max-height: none;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .modal-header,
+    .registration-form {
+        padding: 1.75rem;
+    }
+
+    .modal-title {
+        font-size: 1.65rem;
+    }
+}
+
+/* --- Mobile Phone (≤ 480px) --- */
+@media (max-width: 480px) {
+    .modal-backdrop {
+        padding: 0;
+        align-items: flex-start;
+    }
+
+    .modal-container {
+        max-height: none;
         border-radius: 0;
+        min-height: 100dvh;
     }
 
     .form-grid {
@@ -258,9 +375,21 @@
         gap: 1rem;
     }
 
+    .form-group.full-width {
+        grid-column: 1;
+    }
+
     .modal-header,
     .registration-form {
-        padding: 1.5rem;
+        padding: 1.25rem;
+    }
+
+    .modal-title {
+        font-size: 1.4rem;
+    }
+
+    .modal-subtitle {
+        font-size: 0.9rem;
     }
 
     .modal-close-btn {
@@ -270,10 +399,19 @@
 
     .modal-actions {
         flex-direction: column-reverse;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
     }
 
     .btn-submit,
     .btn-cancel {
         width: 100%;
+        text-align: center;
+        padding: 0.9rem 1rem;
+    }
+
+    .photo-upload-wrapper {
+        width: 120px;
+        height: 120px;
     }
 }
