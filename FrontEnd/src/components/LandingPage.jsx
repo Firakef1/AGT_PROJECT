@@ -2,6 +2,8 @@ import React from 'react';
 import './LandingPage.css';
 import { Plus, Heart, Cpu, Share2, Mail } from 'lucide-react';
 
+import heroVideo from '../assets/30TH.mp4';
+
 const LogoIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="#E8B00B" xmlns="http://www.w3.org/2000/svg">
     <path d="M12 3L16 10H8L12 3Z" />
@@ -49,9 +51,12 @@ const LandingPage = ({ onLogin }) => {
           </div>
         </div>
         <div className="hero-image-wrapper">
-          <img 
-            src="https://images.unsplash.com/photo-1438032005730-c779502df39b?auto=format&fit=crop&q=80&w=800" 
-            alt="Church congregation" 
+          <video
+            src={heroVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
             className="hero-image"
           />
         </div>
