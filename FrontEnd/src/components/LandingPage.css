@@ -70,6 +70,13 @@
   color: var(--lp-text-dark);
 }
 
+.logo-img {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
 .nav-links {
   display: flex;
   gap: 2rem;
@@ -454,18 +461,32 @@
 
 .btn-event-link {
   align-self: flex-start;
-  background-color: transparent;
-  color: var(--lp-primary-blue);
-  padding: 0.5rem 0;
+  background-color: var(--lp-primary-blue);
+  color: #FFFFFF;
+  padding: 0.6rem 1.25rem;
   font-weight: 700;
-  font-size: 0.95rem;
-  border-bottom: 2px solid var(--lp-primary-yellow);
-  border-radius: 0;
+  font-size: 0.875rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .btn-event-link:hover {
-  color: var(--lp-primary-yellow-hover);
-  border-bottom-color: var(--lp-primary-yellow-hover);
+  background-color: var(--lp-primary-blue-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  color: #FFFFFF;
+}
+
+.btn-event-link svg {
+  transition: transform 0.2s ease;
+}
+
+.btn-event-link:hover svg {
+  transform: translateX(4px);
 }
 
 /* CTA Section */

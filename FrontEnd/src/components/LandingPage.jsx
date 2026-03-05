@@ -1,24 +1,62 @@
 import React, { useState } from 'react';
 import './LandingPage.css';
-import { Plus, Heart, Cpu, Share2, Mail, Menu, X } from 'lucide-react';
+import { Plus, Heart, Cpu, Share2, Mail, Menu, X, ArrowRight } from 'lucide-react';
 import RegistrationModal from './RegistrationModal';
+import EventDetailsModal from './EventDetailsModal';
 
 import heroVideo from '../assets/30TH.mp4';
 import hackathonImg from '../assets/hackaton kick off.jpg';
 import welcomeSpecialNeedsImg from '../assets/welcome for new division members.jpg';
 import welcomeCharityImg from '../assets/welcome for new charity division members.jpg';
+import mkLogo from '../assets/mk_logo.jpeg';
 
 const LogoIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="#E8B00B" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 3L16 10H8L12 3Z" />
-    <path d="M6 14L10 21H2L6 14Z" />
-    <path d="M18 14L22 21H14L18 14Z" />
-  </svg>
+  <img src={mkLogo} alt="GubaeTech Logo" className="logo-img" />
 );
+
+const eventsData = [
+  {
+    id: 1,
+    image: hackathonImg,
+    month: 'FEB',
+    day: '28',
+    fullDate: 'February 28',
+    time: 'A week-long event',
+    location: 'AGT HUB',
+    title: 'AGT HUB Hackathon',
+    description: 'Our Talent for Our Church — Innovation · Faith · Technology. A week-long hackathon with guest judges where participants design and build Systems, Websites, and Mobile Apps. Everyone is welcome to join this exciting challenge!',
+    highlights: ['Design Systems', 'Build Websites', 'Mobile Apps', 'Guest Judges', 'Everyone Welcome'],
+  },
+  {
+    id: 2,
+    image: welcomeSpecialNeedsImg,
+    month: 'MAR',
+    day: '05',
+    fullDate: 'Yekatit 27 — March 5',
+    time: '8:30 PM (Local Time)',
+    location: 'St. Teklehaimanot Church',
+    title: '1st Year Special Needs Welcome',
+    description: 'A special welcome program organized for 1st-year students. This event is a unique night featuring a wide array of activities to help new members feel at home in the fellowship community.',
+    highlights: ['Games', 'Films', 'Songs', 'Agape', 'Poems', 'Begena Songs', 'Teachings'],
+  },
+  {
+    id: 3,
+    image: welcomeCharityImg,
+    month: 'MAR',
+    day: '04',
+    fullDate: 'Yekatit 26 — March 4',
+    time: '1:30 PM (Local Time)',
+    location: 'St. Teklehaimanot Church',
+    title: 'Charity Division Welcome',
+    description: 'A Profession & Charity overnight welcome program dedicated to 1st-year students. Join us for a night full of spiritual and educational activities designed to introduce you to the Charity Division community.',
+    highlights: ['Teachings', 'Experience Sharing', 'Agape', 'Drama', 'Begena Songs', 'Games'],
+  },
+];
 
 const LandingPage = ({ onLogin }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const closeMobileNav = () => setIsMobileNavOpen(false);
 
@@ -140,71 +178,32 @@ const LandingPage = ({ onLogin }) => {
           </div>
 
           <div className="events-grid">
-            {/* Event 1 */}
-            <div className="event-card">
-              <div className="event-image-wrapper">
-                <img src={hackathonImg} alt="AGT HUB Hackathon" className="event-image" />
-                <div className="event-date-badge">
-                  <span className="event-month">FEB</span>
-                  <span className="event-day">28</span>
+            {eventsData.map((event) => (
+              <div className="event-card" key={event.id}>
+                <div className="event-image-wrapper">
+                  <img src={event.image} alt={event.title} className="event-image" />
+                  <div className="event-date-badge">
+                    <span className="event-month">{event.month}</span>
+                    <span className="event-day">{event.day}</span>
+                  </div>
+                </div>
+                <div className="event-content">
+                  <div className="event-meta">
+                    <span className="event-time">{event.time}</span>
+                    <span className="event-location">{event.location}</span>
+                  </div>
+                  <h3 className="event-title">{event.title}</h3>
+                  <p className="event-description">{event.description}</p>
+                  <button
+                    className="btn-event-link"
+                    onClick={() => setSelectedEvent(event)}
+                  >
+                    Event Details
+                    <ArrowRight size={16} />
+                  </button>
                 </div>
               </div>
-              <div className="event-content">
-                <div className="event-meta">
-                  <span className="event-time">A week long</span>
-                  <span className="event-location">AGT HUB</span>
-                </div>
-                <h3 className="event-title">AGT HUB Hackathon</h3>
-                <p className="event-description">
-                  Our Talent for Our Church. Design and build Systems, Websites, and Mobile Apps. A week-long hackathon with guest judges. The Kick-Off is coming!
-                </p>
-                <button className="btn-event-link">Event Details</button>
-              </div>
-            </div>
-
-            {/* Event 2 */}
-            <div className="event-card">
-              <div className="event-image-wrapper">
-                <img src={welcomeSpecialNeedsImg} alt="1st Year Special Needs Welcome" className="event-image" />
-                <div className="event-date-badge">
-                  <span className="event-month">MAR</span>
-                  <span className="event-day">05</span>
-                </div>
-              </div>
-              <div className="event-content">
-                <div className="event-meta">
-                  <span className="event-time">8:30 PM (Local)</span>
-                  <span className="event-location">St. Teklehaimanot Church</span>
-                </div>
-                <h3 className="event-title">1st Year Special Needs Welcome</h3>
-                <p className="event-description">
-                  Welcome program for 1st-year students featuring games, films, songs, agape, poems, begena songs, teachings, and more.
-                </p>
-                <button className="btn-event-link">Event Details</button>
-              </div>
-            </div>
-
-            {/* Event 3 */}
-            <div className="event-card">
-              <div className="event-image-wrapper">
-                <img src={welcomeCharityImg} alt="Charity Division Welcome" className="event-image" />
-                <div className="event-date-badge">
-                  <span className="event-month">MAR</span>
-                  <span className="event-day">04</span>
-                </div>
-              </div>
-              <div className="event-content">
-                <div className="event-meta">
-                  <span className="event-time">1:30 PM (Local)</span>
-                  <span className="event-location">St. Teklehaimanot Church</span>
-                </div>
-                <h3 className="event-title">Charity Division Welcome</h3>
-                <p className="event-description">
-                  Profession and Charity overnight program for 1st years. Exploring teachings, experience sharing, agape, drama, begena songs, and games.
-                </p>
-                <button className="btn-event-link">Event Details</button>
-              </div>
-            </div>
+            ))}
           </div>
         </section>
 
@@ -245,6 +244,11 @@ const LandingPage = ({ onLogin }) => {
       <RegistrationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      <EventDetailsModal
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
       />
     </>
   );
