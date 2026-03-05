@@ -10,8 +10,10 @@ import Inventory from "./components/Inventory";
 import Reports from "./components/Reports";
 import Settings from "./components/Settings";
 import Login from "./components/Login";
+import LandingPage from "./components/LandingPage";
 
 function App() {
+  const [showLanding, setShowLanding] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activePage, setActivePage] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -22,6 +24,7 @@ function App() {
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setShowLanding(true);
   };
 
   const renderPage = () => {
@@ -44,6 +47,10 @@ function App() {
         return <Dashboard />;
     }
   };
+
+  if (showLanding && !isLoggedIn) {
+    return <LandingPage onLogin={() => setShowLanding(false)} />;
+  }
 
   if (!isLoggedIn) {
     return <Login onLogin={handleLogin} />;
