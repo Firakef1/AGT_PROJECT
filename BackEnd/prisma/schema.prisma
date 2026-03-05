@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  DIVISION_HEAD
+  MEMBER
+}
+
+model Division {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  members     Member[]
+  events      Event[]
+  finances    FinanceTransaction[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  googleId  String?  @unique
+  fullName  String
+  role      Role     @default(MEMBER)
+  member    Member?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Member {
+  id           String        @id @default(uuid())
+  studentId    String        @unique
+  fullName     String
+  email        String        @unique
+  phone        String?
+  divisionId   String
+  division     Division      @relation(fields: [divisionId], references: [id])
+  userId       String?       @unique
+  user         User?         @relation(fields: [userId], references: [id])
+  attendances  Attendance[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Event {
+  id           String        @id @default(uuid())
+  title        String
+  description  String?
+  startTime    DateTime
+  endTime      DateTime
+  location     String?
+  divisionId   String?
+  division     Division?     @relation(fields: [divisionId], references: [id])
+  attendances  Attendance[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Attendance {
+  id         String   @id @default(uuid())
+  memberId   String
+  member     Member   @relation(fields: [memberId], references: [id])
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id])
+  status     String   // PRESENT, ABSENT, EXCUSED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([memberId, eventId])
+}
+
+model InventoryItem {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  quantity    Int      @default(0)
+  location    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+model FinanceTransaction {
+  id          String          @id @default(uuid())
+  type        TransactionType
+  amount      Float
+  description String?
+  divisionId  String?
+  division    Division?       @relation(fields: [divisionId], references: [id])
+  occurredAt  DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+}

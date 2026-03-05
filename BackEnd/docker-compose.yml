@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gubaetech
+      POSTGRES_USER: gubaeuser
+      POSTGRES_PASSWORD: gubaepass
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://gubaeuser:gubaepass@db:5432/gubaetech
+      NODE_ENV: production
+    ports:
+      - "4000:4000"
+
+volumes:
+  db-data:
+
