@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   AreaChart,
   Area,
@@ -19,7 +19,9 @@ import {
   FileBarChart,
   ArrowUpRight,
   X,
+  Loader2
 } from "lucide-react";
+import { apiFetch } from "../services/apiFetch.js";
 
 const monthlyData = [
   { name: "JAN", income: 180000, expenses: 120000 },
@@ -37,49 +39,6 @@ const yearlyData = [
   { name: "2024", income: 3200000, expenses: 2100000 },
   { name: "2025", income: 4500000, expenses: 2800000 },
   { name: "2026", income: 5420000, expenses: 3200000 },
-];
-
-const summaryCards = [
-  {
-    title: "Total Members",
-    value: "1,240",
-    change: "+5%",
-    changeType: "positive",
-    icon: Users,
-    iconBg: "#e8f0fe",
-    iconColor: "#1a56db",
-    page: "members",
-  },
-  {
-    title: "Total Divisions",
-    value: "12",
-    change: "0%",
-    changeType: "neutral",
-    icon: Building2,
-    iconBg: "#fef3e2",
-    iconColor: "#d97706",
-    page: "divisions",
-  },
-  {
-    title: "Monthly Budget",
-    value: "45,000 ETB",
-    change: "+12%",
-    changeType: "positive",
-    icon: Wallet,
-    iconBg: "#e8f5e9",
-    iconColor: "#16a34a",
-    page: "finance",
-  },
-  {
-    title: "Inventory Status",
-    value: "Optimal",
-    change: "-2%",
-    changeType: "negative",
-    icon: PackageCheck,
-    iconBg: "#fce4ec",
-    iconColor: "#dc2626",
-    page: "inventory",
-  },
 ];
 
 // Preview list shown on the dashboard card (latest 4)
@@ -221,12 +180,79 @@ const allActivities = [
 const Dashboard = ({ setActivePage }) => {
   const [chartPeriod, setChartPeriod] = useState("year");
   const [showAllActivities, setShowAllActivities] = useState(false);
+  const [stats, setStats] = useState({ members: 0, divisions: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [members, divisions] = await Promise.all([
+          apiFetch("/members"),
+          apiFetch("/divisions")
+        ]);
+        setStats({
+          members: members.length,
+          divisions: divisions.length
+        });
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const chartData = chartPeriod === "month" ? monthlyData : yearlyData;
 
-  const handleCardClick = (page) => {
-    if (setActivePage && page) setActivePage(page);
-  };
+  const summaryCards = [
+    {
+      title: "Total Members",
+      value: stats.members.toLocaleString(),
+      change: "+0%",
+      changeType: "neutral",
+      icon: Users,
+      iconBg: "#e8f0fe",
+      iconColor: "#1a56db",
+      page: "members",
+    },
+    {
+      title: "Total Divisions",
+      value: stats.divisions.toString(),
+      change: "0%",
+      changeType: "neutral",
+      icon: Building2,
+      iconBg: "#fef3e2",
+      iconColor: "#d97706",
+      page: "divisions",
+    },
+    {
+      title: "Monthly Budget",
+      value: "45,000 ETB",
+      change: "+12%",
+      changeType: "positive",
+      icon: Wallet,
+      iconBg: "#e8f5e9",
+      iconColor: "#16a34a",
+      page: "finance",
+    },
+    {
+      title: "Inventory Status",
+      value: "Optimal",
+      change: "-2%",
+      changeType: "negative",
+      icon: PackageCheck,
+      iconBg: "#fce4ec",
+      iconColor: "#dc2626",
+      page: "inventory",
+    },
+  ];
+
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Loader2 className="spin" size={48} />
+    </div>
+  );
 
   return (
     <div className="dashboard-v2">
@@ -244,7 +270,7 @@ const Dashboard = ({ setActivePage }) => {
             <div
               key={idx}
               className="dash-stat-card dash-stat-card--clickable"
-              onClick={() => handleCardClick(card.page)}
+              onClick={() => setActivePage(card.page)}
               title={`Go to ${card.title}`}
             >
               <div className="dash-stat-card-top">
@@ -377,12 +403,12 @@ const Dashboard = ({ setActivePage }) => {
       <div className="dash-bottom-grid">
         <div
           className="dash-bottom-card dash-division-card dash-bottom-card--clickable"
-          onClick={() => handleCardClick("divisions")}
+          onClick={() => setActivePage("divisions")}
           title="Go to Divisions"
         >
           <div className="dash-bottom-card-content">
             <h3>Division Management</h3>
-            <p>Assign tasks and manage members across 12 active divisions.</p>
+            <p>Assign tasks and manage members across {stats.divisions} active divisions.</p>
           </div>
           <div className="dash-bottom-card-icon">
             <Building2 size={40} color="rgba(255,255,255,0.3)" />
@@ -390,7 +416,7 @@ const Dashboard = ({ setActivePage }) => {
         </div>
         <div
           className="dash-bottom-card dash-health-card dash-bottom-card--clickable"
-          onClick={() => handleCardClick("settings")}
+          onClick={() => setActivePage("settings")}
           title="Go to Settings"
         >
           <div className="dash-bottom-card-content">

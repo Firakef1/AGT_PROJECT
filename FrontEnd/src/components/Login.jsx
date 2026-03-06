@@ -1,17 +1,16 @@
 import React, { useState } from "react";
-import { Mail, Lock, Eye, EyeOff, Shield, ArrowRight } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Shield, ArrowRight, Loader2 } from "lucide-react";
 import logo from "../assets/mk_logo.jpeg";
 import "./Login.css";
 import DivisionSelector from "./DivisionSelector";
+import { apiFetch } from "../services/apiFetch.js";
 
 // ── Division → button label map ────────────────────────────────────────────────
-// Keeps the Sign In button text in sync with the selected division so users
-// always know exactly where they are about to land.
 const DIVISION_BTN_LABEL = {
-  administrative: "Sign In to Dashboard",
-  members: "Sign In to Members",
-  education: "Sign In to Education",
-  arts: "Sign In to Arts",
+  administrative: "Sign In to Admin Portal",
+  members: "Sign In to Members Management",
+  education: "Sign In to Education Portal",
+  arts: "Sign In to Arts Portal",
 };
 
 const Login = ({ onLogin }) => {
@@ -19,23 +18,31 @@ const Login = ({ onLogin }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // Tracks which division the user has selected.
-  // Defaults to "administrative" so existing behaviour is fully preserved
-  // when no explicit choice is made.
   const [selectedDivision, setSelectedDivision] = useState("administrative");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
-    // Simulate API call — on success, pass the selected division to the
-    // parent (App.jsx handleLogin) so it can route the user to the correct
-    // portal section based on their choice.
-    setTimeout(() => {
+    try {
+      const data = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+
+      // data contains { token, user: { id, email, role, fullName, divisionId } }
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      
+      onLogin(data.user);
+    } catch (err) {
+      setError(err.message || "Invalid credentials. Please try again.");
+    } finally {
       setIsLoading(false);
-      onLogin(selectedDivision);
-    }, 1500);
+    }
   };
 
   return (
@@ -79,6 +86,8 @@ const Login = ({ onLogin }) => {
               <h2>Welcome Back</h2>
               <p>Please enter your leader credentials to continue.</p>
             </div>
+
+            {error && <div className="login-error" style={{ color: '#dc2626', background: '#fee2e2', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.9rem', textAlign: 'center' }}>{error}</div>}
 
             <form onSubmit={handleSubmit} className="login-form">
               <div className="form-group">
@@ -131,20 +140,14 @@ const Login = ({ onLogin }) => {
                 </label>
               </div>
 
-              {/* ── Division selector ────────────────────────────
-                                Placed directly above the Sign In button so it
-                                reads naturally as the final choice before submit.
-                                The selected value is forwarded to onLogin() on
-                                form submission to drive post-auth routing.      */}
               <DivisionSelector
                 value={selectedDivision}
                 onChange={setSelectedDivision}
               />
 
-              {/* Sign In button — label updates with selected division */}
               <button type="submit" className="signin-btn" disabled={isLoading}>
                 {isLoading ? (
-                  <span className="btn-loader"></span>
+                  <><Loader2 size={18} className="spin" /> Checking...</>
                 ) : (
                   <>
                     {DIVISION_BTN_LABEL[selectedDivision] ?? "Sign In"}

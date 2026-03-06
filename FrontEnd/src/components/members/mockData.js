@@ -26,21 +26,17 @@ export const getInitials = (name) =>
 
 // ── Role colour map ─────────────────────────────────────────────────────────
 export const roleColors = {
-  "Media Team":     { color: "#1a56db", bg: "#e8f0fe" },
-  "Education Team": { color: "#16a34a", bg: "#dcfce7" },
-  "Charity Team":   { color: "#d97706", bg: "#fff3cd" },
-  "Arts Team":      { color: "#7c3aed", bg: "#f3e8ff" },
-  "Music Team":     { color: "#dc2626", bg: "#fef2f2" },
-  "Youth Team":     { color: "#0891b2", bg: "#e0f2fe" },
-  "Prayer Team":    { color: "#059669", bg: "#d1fae5" },
-  "Admin":          { color: "#6b7280", bg: "#f3f4f6" },
+  ADMIN:           { color: "#1e40af", bg: "#dbeafe" },
+  MEMBERS_MANAGER: { color: "#7c3aed", bg: "#f5f3ff" },
+  DIVISION_HEAD:   { color: "#0891b2", bg: "#ecfeff" },
+  MEMBER:          { color: "#4b5563", bg: "#f3f4f6" },
 };
 
 /** All selectable roles for form dropdowns */
 export const ALL_ROLES = Object.keys(roleColors);
 
 /** All selectable statuses */
-export const ALL_STATUSES = ["Active", "Inactive"];
+export const ALL_STATUSES = ["PENDING", "APPROVED", "REJECTED"];
 
 /** All selectable genders */
 export const ALL_GENDERS = ["Male", "Female", "Other"];
@@ -48,15 +44,16 @@ export const ALL_GENDERS = ["Male", "Female", "Other"];
 // ── Blank form template for MemberFormModal ─────────────────────────────────
 export const EMPTY_MEMBER_FORM = {
   fullName:     "",
+  studentId:    "",
   gender:       "Male",
   phone:        "",
   email:        "",
   birthday:     "",
   joinDate:     "",
   address:      "",
-  familyId:     null,
-  role:         "Media Team",
-  status:       "Active",
+  divisionId:   null,
+  role:         "MEMBER",
+  status:       "PENDING",
   profileImage: null,
 };
 

@@ -1,23 +1,40 @@
-import React, { useState } from 'react';
-import { X, Upload } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Upload, Loader2 } from 'lucide-react';
 import './RegistrationModal.css';
+import { apiFetch } from '../services/apiFetch.js';
 
 const RegistrationModal = ({ isOpen, onClose }) => {
     const [formData, setFormData] = useState({
-        memberId: '',
+        studentId: '',
         fullName: '',
-        gender: '',
-        phoneNumber: '',
         email: '',
-        dateJoined: '',
-        address: '',
-        birthday: '',
-        status: 'Active',
-        profilePhoto: null
+        phone: '',
+        divisionId: ''
     });
 
-    const [photoPreview, setPhotoPreview] = useState(null);
+    const [divisions, setDivisions] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchDivisions();
+        }
+    }, [isOpen]);
+
+    const fetchDivisions = async () => {
+        setIsLoading(true);
+        try {
+            const data = await apiFetch('/divisions');
+            setDivisions(data);
+        } catch (err) {
+            console.error('Failed to fetch divisions:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -26,33 +43,32 @@ const RegistrationModal = ({ isOpen, onClose }) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handlePhotoChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setFormData(prev => ({ ...prev, profilePhoto: file }));
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPhotoPreview(reader.result);
-            };
-            reader.readAsDataURL(file);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        setError('');
+        try {
+            await apiFetch('/members/register', {
+                method: 'POST',
+                body: JSON.stringify(formData),
+            });
+            setSubmitted(true);
+            setTimeout(() => {
+                setSubmitted(false);
+                onClose();
+                setFormData({ studentId: '', fullName: '', email: '', phone: '', divisionId: '' });
+            }, 6000);
+        } catch (err) {
+            setError(err.message || 'Registration failed. Please try again.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        console.log('Registration Data:', formData);
-        setSubmitted(true);
-        // Auto-close after 4.5 seconds
-        setTimeout(() => {
-            setSubmitted(false);
-            onClose();
-        }, 10000);
-    };
-
     return (
-        <div className="modal-backdrop" onClick={!submitted ? onClose : undefined}>
+        <div className="modal-backdrop" onClick={!submitted && !isSubmitting ? onClose : undefined}>
             <div className="modal-container" onClick={e => e.stopPropagation()}>
-                <button className="modal-close-btn" onClick={onClose}>
+                <button className="modal-close-btn" onClick={onClose} disabled={isSubmitting}>
                     <X size={24} />
                 </button>
 
@@ -63,46 +79,25 @@ const RegistrationModal = ({ isOpen, onClose }) => {
 
                 {submitted ? (
                     <div className="registration-success">
-                        <div className="success-icon">👍</div>
-                        <h3 className="success-title">Thank you for registering!</h3>
+                        <div className="success-icon" style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+                        <h3 className="success-title">Registration Submitted!</h3>
                         <p className="success-message">
-                            Your registration has been received. You will be added to the community soon after verification.
+                            Your request has been received. Your membership is now <strong>Pending Approval</strong> by the Admin or Members Management team.
                         </p>
-                        <p className="success-sub">This window will close automatically…</p>
+                        <p className="success-sub">You will receive an email once your request is processed.</p>
                     </div>
                 ) : (
                     <form className="registration-form" onSubmit={handleSubmit}>
-
-                        {/* Photo Upload Section */}
-                        <div className="form-section-photo">
-                            <div className="photo-upload-wrapper">
-                                {photoPreview ? (
-                                    <img src={photoPreview} alt="Profile Preview" className="photo-preview" />
-                                ) : (
-                                    <div className="photo-placeholder">
-                                        <Upload size={32} className="upload-icon" />
-                                        <span>Upload Photo</span>
-                                    </div>
-                                )}
-                                <input
-                                    type="file"
-                                    id="profilePhoto"
-                                    name="profilePhoto"
-                                    accept="image/*"
-                                    onChange={handlePhotoChange}
-                                    className="photo-input"
-                                />
-                            </div>
-                        </div>
-
+                        {error && <div className="form-error" style={{ color: '#dc2626', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+                        
                         <div className="form-grid">
                             <div className="form-group">
-                                <label htmlFor="memberId">Member ID</label>
+                                <label htmlFor="studentId">Student ID (Member ID) *</label>
                                 <input
                                     type="text"
-                                    id="memberId"
-                                    name="memberId"
-                                    value={formData.memberId}
+                                    id="studentId"
+                                    name="studentId"
+                                    value={formData.studentId}
                                     onChange={handleChange}
                                     required
                                     placeholder="e.g. UGR/000001/18"
@@ -110,7 +105,7 @@ const RegistrationModal = ({ isOpen, onClose }) => {
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="fullName">Full Name</label>
+                                <label htmlFor="fullName">Full Name *</label>
                                 <input
                                     type="text"
                                     id="fullName"
@@ -123,35 +118,7 @@ const RegistrationModal = ({ isOpen, onClose }) => {
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="gender">Gender</label>
-                                <select
-                                    id="gender"
-                                    name="gender"
-                                    value={formData.gender}
-                                    onChange={handleChange}
-                                    required
-                                >
-                                    <option value="" disabled>Select gender</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                </select>
-                            </div>
-
-                            <div className="form-group">
-                                <label htmlFor="phoneNumber">Phone Number</label>
-                                <input
-                                    type="tel"
-                                    id="phoneNumber"
-                                    name="phoneNumber"
-                                    value={formData.phoneNumber}
-                                    onChange={handleChange}
-                                    required
-                                    placeholder="+251 912 345 678"
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label htmlFor="email">Email</label>
+                                <label htmlFor="email">Email *</label>
                                 <input
                                     type="email"
                                     id="email"
@@ -164,61 +131,43 @@ const RegistrationModal = ({ isOpen, onClose }) => {
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="dateJoined">Date Joined</label>
+                                <label htmlFor="phone">Phone Number *</label>
                                 <input
-                                    type="date"
-                                    id="dateJoined"
-                                    name="dateJoined"
-                                    value={formData.dateJoined}
+                                    type="tel"
+                                    id="phone"
+                                    name="phone"
+                                    value={formData.phone}
                                     onChange={handleChange}
                                     required
+                                    placeholder="+251 912 345 678"
                                 />
-                            </div>
-
-                            <div className="form-group">
-                                <label htmlFor="birthday">Birthday</label>
-                                <input
-                                    type="date"
-                                    id="birthday"
-                                    name="birthday"
-                                    value={formData.birthday}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label htmlFor="status">Status</label>
-                                <select
-                                    id="status"
-                                    name="status"
-                                    value={formData.status}
-                                    onChange={handleChange}
-                                    required
-                                >
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
-                                    <option value="Visitor">Visitor</option>
-                                </select>
                             </div>
 
                             <div className="form-group full-width">
-                                <label htmlFor="address">Address</label>
-                                <textarea
-                                    id="address"
-                                    name="address"
-                                    value={formData.address}
+                                <label htmlFor="divisionId">Division of Interest *</label>
+                                <select
+                                    id="divisionId"
+                                    name="divisionId"
+                                    value={formData.divisionId}
                                     onChange={handleChange}
                                     required
-                                    placeholder="Current residential address..."
-                                    rows="3"
-                                />
+                                    disabled={isLoading}
+                                >
+                                    <option value="" disabled>{isLoading ? 'Loading...' : 'Select a division'}</option>
+                                    {divisions.map(div => (
+                                        <option key={div.id} value={div.id}>{div.name}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 
                         <div className="modal-actions">
-                            <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
-                            <button type="submit" className="btn-submit">Submit Registration</button>
+                            <button type="button" className="btn-cancel" onClick={onClose} disabled={isSubmitting}>Cancel</button>
+                            <button type="submit" className="btn-submit" disabled={isSubmitting}>
+                                {isSubmitting ? (
+                                    <><Loader2 size={18} className="spin" /> Processing...</>
+                                ) : 'Submit Registration'}
+                            </button>
                         </div>
                     </form>
                 )}

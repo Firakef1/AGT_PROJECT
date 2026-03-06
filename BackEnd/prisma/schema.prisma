@@ -15,8 +15,15 @@ datasource db {
 
 enum Role {
   ADMIN
+  MEMBERS_MANAGER
   DIVISION_HEAD
   MEMBER
+}
+
+enum MemberStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model Division {
@@ -48,8 +55,9 @@ model Member {
   fullName     String
   email        String        @unique
   phone        String?
-  divisionId   String
-  division     Division      @relation(fields: [divisionId], references: [id])
+  status       MemberStatus  @default(PENDING)
+  divisionId   String?
+  division     Division?     @relation(fields: [divisionId], references: [id])
   userId       String?       @unique
   user         User?         @relation(fields: [userId], references: [id])
   attendances  Attendance[]
