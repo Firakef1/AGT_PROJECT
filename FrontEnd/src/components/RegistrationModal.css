@@ -1,0 +1,417 @@
+/* RegistrationModal.css */
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.7);
+    /* lp-primary-blue with opacity */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.modal-container {
+    background-color: #FFFFFF;
+    border-radius: 1.5rem;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #0F172A;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748B;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close-btn:hover {
+    background-color: #F1F5F9;
+    color: #0F172A;
+}
+
+.modal-header {
+    padding: 2.5rem 2.5rem 1.5rem;
+    border-bottom: 1px solid #F1F5F9;
+}
+
+.modal-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 0.5rem 0;
+}
+
+.modal-subtitle {
+    color: #64748B;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.registration-form {
+    padding: 2.5rem;
+}
+
+/* Photo Upload Section */
+.form-section-photo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.photo-upload-wrapper {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background-color: #F8FAFC;
+    border: 2px dashed #CBD5E1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.photo-upload-wrapper:hover {
+    border-color: #FACC15;
+    background-color: #FEFCE8;
+}
+
+.photo-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #94A3B8;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.upload-icon {
+    color: #cbd5e1;
+}
+
+.photo-upload-wrapper:hover .upload-icon {
+    color: #FACC15;
+}
+
+.photo-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photo-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* Form Grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1E293B;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #E2E8F0;
+    font-size: 1rem;
+    font-family: inherit;
+    color: #0F172A;
+    background-color: #FFFFFF;
+    transition: all 0.2s ease;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #94A3B8;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #FACC15;
+    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.2);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid #F1F5F9;
+}
+
+.btn-cancel {
+    padding: 0.75rem 1.5rem;
+    border-radius: 9999px;
+    border: 1px solid #E2E8F0;
+    background-color: transparent;
+    color: #64748B;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+    background-color: #F1F5F9;
+    color: #0F172A;
+}
+
+.btn-submit {
+    padding: 0.75rem 2rem;
+    border-radius: 9999px;
+    border: none;
+    background-color: #FACC15;
+    /* lp-primary-yellow */
+    color: #1E293B;
+    /* lp-primary-blue */
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-submit:hover {
+    background-color: #EAB308;
+    transform: translateY(-1px);
+}
+
+/* Registration Success Notification */
+.registration-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2.5rem;
+    text-align: center;
+    animation: fadeInSuccess 0.4s ease;
+    min-height: 300px;
+}
+
+@keyframes fadeInSuccess {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.success-icon {
+    font-size: 4rem;
+    margin-bottom: 1.25rem;
+    animation: bounceThumbs 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+@keyframes bounceThumbs {
+    from {
+        transform: scale(0.4) rotate(-15deg);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+.success-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 0.75rem 0;
+}
+
+.success-message {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #475569;
+    max-width: 380px;
+    margin: 0 0 1.5rem 0;
+}
+
+.success-sub {
+    font-size: 0.85rem;
+    color: #94A3B8;
+    margin: 0;
+    animation: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.45;
+    }
+}
+
+/* Custom Scrollbar for Modal */
+.modal-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-container::-webkit-scrollbar-thumb {
+    background-color: #CBD5E1;
+    border-radius: 20px;
+}
+
+/* =============================================
+   Responsive Breakpoints for Modal
+   - 768px : Tablet
+   - 480px : Mobile Phone
+   ============================================= */
+
+/* --- Tablet (≤ 768px) --- */
+@media (max-width: 768px) {
+    .modal-backdrop {
+        padding: 0.5rem;
+        align-items: flex-start;
+        overflow-y: auto;
+    }
+
+    .modal-container {
+        max-width: 100%;
+        border-radius: 1rem;
+        max-height: none;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .modal-header,
+    .registration-form {
+        padding: 1.75rem;
+    }
+
+    .modal-title {
+        font-size: 1.65rem;
+    }
+}
+
+/* --- Mobile Phone (≤ 480px) --- */
+@media (max-width: 480px) {
+    .modal-backdrop {
+        padding: 0;
+        align-items: flex-start;
+    }
+
+    .modal-container {
+        max-height: none;
+        border-radius: 0;
+        min-height: 100dvh;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .form-group.full-width {
+        grid-column: 1;
+    }
+
+    .modal-header,
+    .registration-form {
+        padding: 1.25rem;
+    }
+
+    .modal-title {
+        font-size: 1.4rem;
+    }
+
+    .modal-subtitle {
+        font-size: 0.9rem;
+    }
+
+    .modal-close-btn {
+        top: 1rem;
+        right: 1rem;
+    }
+
+    .modal-actions {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+
+    .btn-submit,
+    .btn-cancel {
+        width: 100%;
+        text-align: center;
+        padding: 0.9rem 1rem;
+    }
+
+    .photo-upload-wrapper {
+        width: 120px;
+        height: 120px;
+    }
+}
