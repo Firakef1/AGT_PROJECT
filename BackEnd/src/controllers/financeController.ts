@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { getFinanceSummary, recordTransaction } from "../services/financeService";
-import { sendEmail } from "../utils/email";
+import { getFinanceSummary, recordTransaction, listTransactions } from "../services/financeService.js";
+import { sendEmail } from "../utils/email.js";
 
 const transactionSchema = z.object({
   type: z.enum(["INCOME", "EXPENSE"]),
@@ -42,5 +42,13 @@ export async function financeSummaryController(req: Request, res: Response) {
   const summary = await getFinanceSummary({ divisionId, from, to });
 
   return res.json(summary);
+}
+
+export async function listTransactionsController(req: Request, res: Response) {
+  const divisionId =
+    typeof req.query.divisionId === "string" ? req.query.divisionId : undefined;
+
+  const transactions = await listTransactions({ divisionId });
+  return res.json(transactions);
 }
 

@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import {
   registerMember,
@@ -8,105 +8,171 @@ import {
   updateMember,
   deleteMember,
   assignDivisionLeader,
+  assignMemberToDivision,
 } from "../services/memberService.js";
+
+// ── Validation schemas ─────────────────────────────────────────────────────────
 
 const memberRegisterSchema = z.object({
   studentId: z.string().min(1),
   fullName: z.string().min(1),
   email: z.string().email(),
-  phone: z.string().optional(),
-  divisionId: z.string().uuid().optional(),
+  phone: z.string().optional().nullable().or(z.literal("")),
+  divisionId: z.string().uuid().optional().nullable().or(z.literal("")),
 });
 
 const memberUpdateSchema = z.object({
   fullName: z.string().min(1).optional(),
   email: z.string().email().optional(),
-  phone: z.string().optional(),
-  divisionId: z.string().uuid().optional(),
+  phone: z.string().optional().nullable().or(z.literal("")),
+  divisionId: z.string().uuid().optional().nullable().or(z.literal("")),
 });
 
 const assignLeaderSchema = z.object({
   divisionId: z.string().uuid(),
 });
 
-export async function registerMemberController(req: Request, res: Response) {
+const assignDivisionSchema = z.object({
+  divisionId: z.string().uuid().nullable(),
+});
+
+// ── Controllers ────────────────────────────────────────────────────────────────
+
+export async function registerMemberController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const parse = memberRegisterSchema.safeParse(req.body);
   if (!parse.success) {
     return res
       .status(400)
       .json({ message: "Invalid input", errors: parse.error.flatten() });
   }
-
-  const member = await registerMember(parse.data);
-  return res.status(201).json(member);
+  try {
+    const member = await registerMember(parse.data);
+    return res.status(201).json(member);
+  } catch (err) {
+    next(err);
+  }
 }
 
-export async function listMembersController(req: Request, res: Response) {
+export async function listMembersController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const divisionId =
     typeof req.query.divisionId === "string" ? req.query.divisionId : undefined;
   const status =
     typeof req.query.status === "string" ? req.query.status : undefined;
 
-  const members = await listMembers({ divisionId, status });
-  return res.json(members);
+  try {
+    const members = await listMembers({ divisionId, status });
+    return res.json(members);
+  } catch (err) {
+    next(err);
+  }
 }
 
-export async function approveMemberController(req: Request, res: Response) {
-  const id = req.params.id as string;
-  if (!id) return res.status(400).json({ message: "ID is required" });
+export async function approveMemberController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { id } = req.params;
   try {
     const updated = await approveMember(id);
     return res.json(updated);
-  } catch (err: any) {
-    return res.status(400).json({ message: err.message });
+  } catch (err) {
+    next(err);
   }
 }
 
-export async function rejectMemberController(req: Request, res: Response) {
-  const id = req.params.id as string;
-  if (!id) return res.status(400).json({ message: "ID is required" });
+export async function rejectMemberController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { id } = req.params;
   try {
     const updated = await rejectMember(id);
     return res.json(updated);
-  } catch (err: any) {
-    return res.status(400).json({ message: err.message });
+  } catch (err) {
+    next(err);
   }
 }
 
-export async function assignDivisionLeaderController(req: Request, res: Response) {
-  const id = req.params.id as string;
-  if (!id) return res.status(400).json({ message: "ID is required" });
+export async function assignDivisionLeaderController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { id } = req.params;
   const parse = assignLeaderSchema.safeParse(req.body);
   if (!parse.success) {
-    return res.status(400).json({ message: "Invalid input", errors: parse.error.flatten() });
+    return res
+      .status(400)
+      .json({ message: "Invalid input", errors: parse.error.flatten() });
   }
-
   try {
     const result = await assignDivisionLeader(id, parse.data.divisionId);
     return res.json(result);
-  } catch (err: any) {
-    return res.status(400).json({ message: err.message });
+  } catch (err) {
+    next(err);
   }
 }
 
-export async function updateMemberController(req: Request, res: Response) {
+export async function assignMemberToDivisionController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { id } = req.params;
+  const parse = assignDivisionSchema.safeParse(req.body);
+  if (!parse.success) {
+    return res
+      .status(400)
+      .json({ message: "Invalid input", errors: parse.error.flatten() });
+  }
+  try {
+    const result = await assignMemberToDivision(id, parse.data.divisionId);
+    return res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateMemberController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const parse = memberUpdateSchema.safeParse(req.body);
   if (!parse.success) {
     return res
       .status(400)
       .json({ message: "Invalid input", errors: parse.error.flatten() });
   }
-
-  const id = req.params.id as string;
-  if (!id) return res.status(400).json({ message: "ID is required" });
-  const updated = await updateMember(id, parse.data);
-  return res.json(updated);
+  const { id } = req.params;
+  try {
+    const updated = await updateMember(id, parse.data);
+    return res.json(updated);
+  } catch (err) {
+    next(err);
+  }
 }
 
-export async function deleteMemberController(req: Request, res: Response) {
-  const id = req.params.id as string;
-  if (!id) return res.status(400).json({ message: "ID is required" });
-  await deleteMember(id);
-  return res.status(204).send();
+export async function deleteMemberController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { id } = req.params;
+  try {
+    await deleteMember(id);
+    return res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
 }
-

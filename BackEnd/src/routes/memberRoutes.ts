@@ -7,6 +7,7 @@ import {
   rejectMemberController,
   updateMemberController,
   assignDivisionLeaderController,
+  assignMemberToDivisionController,
 } from "../controllers/memberController.js";
 import { authenticate, authorize } from "../middleware/authMiddleware.js";
 
@@ -63,43 +64,102 @@ router.use(authenticate as any);
  *       200:
  *         description: List of members
  */
-router.get("/", authorize(["ADMIN", "MEMBERS_MANAGER", "DIVISION_HEAD"]) as any, listMembersController);
+router.get(
+  "/",
+  authorize(["ADMIN", "MEMBERS_MANAGER", "DIVISION_HEAD"]) as any,
+  listMembersController,
+);
 
 /**
  * @swagger
  * /members/{id}/approve:
  *   post:
- *     summary: Approve a pending member
+ *     summary: Approve a pending member (sends email with temp password)
  *     tags: [Members]
  *     security:
  *       - bearerAuth: []
  */
-router.post("/:id/approve", authorize(["ADMIN", "MEMBERS_MANAGER"]) as any, approveMemberController);
+router.post(
+  "/:id/approve",
+  authorize(["ADMIN", "MEMBERS_MANAGER"]) as any,
+  approveMemberController,
+);
 
 /**
  * @swagger
  * /members/{id}/reject:
  *   post:
- *     summary: Reject a pending member
+ *     summary: Reject a pending member (sends rejection email)
  *     tags: [Members]
  *     security:
  *       - bearerAuth: []
  */
-router.post("/:id/reject", authorize(["ADMIN", "MEMBERS_MANAGER"]) as any, rejectMemberController);
+router.post(
+  "/:id/reject",
+  authorize(["ADMIN", "MEMBERS_MANAGER"]) as any,
+  rejectMemberController,
+);
 
 /**
  * @swagger
  * /members/{id}/assign-leader:
  *   post:
- *     summary: Assign member as a division leader
+ *     summary: Assign member as a division leader (requires 6 months in division)
  *     tags: [Members]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [divisionId]
+ *             properties:
+ *               divisionId:
+ *                 type: string
+ *                 format: uuid
  */
-router.post("/:id/assign-leader", authorize(["ADMIN"]) as any, assignDivisionLeaderController);
+router.post(
+  "/:id/assign-leader",
+  authorize(["ADMIN"]) as any,
+  assignDivisionLeaderController,
+);
 
-router.put("/:id", authorize(["ADMIN", "MEMBERS_MANAGER", "DIVISION_HEAD"]) as any, updateMemberController);
+/**
+ * @swagger
+ * /members/{id}/division:
+ *   put:
+ *     summary: Assign or unassign a member to/from a division
+ *     tags: [Members]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [divisionId]
+ *             properties:
+ *               divisionId:
+ *                 type: string
+ *                 format: uuid
+ *                 nullable: true
+ *                 description: UUID to assign, null to unassign
+ */
+router.put(
+  "/:id/division",
+  authorize(["ADMIN", "MEMBERS_MANAGER"]) as any,
+  assignMemberToDivisionController,
+);
+
+router.put(
+  "/:id",
+  authorize(["ADMIN", "MEMBERS_MANAGER", "DIVISION_HEAD"]) as any,
+  updateMemberController,
+);
+
 router.delete("/:id", authorize(["ADMIN"]) as any, deleteMemberController);
 
 export default router;
-

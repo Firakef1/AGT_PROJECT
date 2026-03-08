@@ -2,12 +2,13 @@ import { Router } from "express";
 import {
   financeSummaryController,
   recordTransactionController,
-} from "../controllers/financeController";
-import { authenticate, authorize } from "../middleware/authMiddleware";
+  listTransactionsController,
+} from "../controllers/financeController.js";
+import { authenticate, authorize } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
-router.use(authenticate, authorize(["ADMIN", "DIVISION_HEAD"]));
+router.use(authenticate as any, authorize(["ADMIN", "DIVISION_HEAD"]) as any);
 
 /**
  * @swagger
@@ -39,6 +40,25 @@ router.use(authenticate, authorize(["ADMIN", "DIVISION_HEAD"]));
  *         description: Transaction recorded
  */
 router.post("/", recordTransactionController);
+
+/**
+ * @swagger
+ * /finance:
+ *   get:
+ *     summary: List finance transactions
+ *     tags: [Finance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: divisionId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of transactions
+ */
+router.get("/", listTransactionsController);
 
 /**
  * @swagger

@@ -56,9 +56,10 @@ model Member {
   email        String        @unique
   phone        String?
   status       MemberStatus  @default(PENDING)
-  divisionId   String?
-  division     Division?     @relation(fields: [divisionId], references: [id])
-  userId       String?       @unique
+  divisionId      String?
+  division        Division?     @relation(fields: [divisionId], references: [id])
+  divisionJoinedAt DateTime?
+  userId          String?       @unique
   user         User?         @relation(fields: [userId], references: [id])
   attendances  Attendance[]
   createdAt    DateTime      @default(now())

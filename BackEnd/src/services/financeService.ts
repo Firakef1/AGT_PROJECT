@@ -1,4 +1,4 @@
-import { prisma } from "../prisma/client";
+import { prisma } from "../prisma/client.js";
 
 export async function recordTransaction(data: {
   type: "INCOME" | "EXPENSE";
@@ -37,11 +37,11 @@ export async function getFinanceSummary(params?: {
   });
 
   const income = transactions
-    .filter((t) => t.type === "INCOME")
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter((t: any) => t.type === "INCOME")
+    .reduce((sum: number, t: any) => sum + t.amount, 0);
   const expenses = transactions
-    .filter((t) => t.type === "EXPENSE")
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter((t: any) => t.type === "EXPENSE")
+    .reduce((sum: number, t: any) => sum + t.amount, 0);
   const balance = income - expenses;
 
   return {
@@ -50,5 +50,17 @@ export async function getFinanceSummary(params?: {
     balance,
     count: transactions.length,
   };
+}
+
+export async function listTransactions(params?: { divisionId?: string }) {
+  const where: any = {};
+  if (params?.divisionId) {
+    where.divisionId = params.divisionId;
+  }
+
+  return prisma.financeTransaction.findMany({
+    where,
+    orderBy: { occurredAt: "desc" },
+  });
 }
 

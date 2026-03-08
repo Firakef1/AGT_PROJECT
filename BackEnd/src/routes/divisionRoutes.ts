@@ -4,12 +4,14 @@ import {
   deleteDivisionController,
   listDivisionsController,
   updateDivisionController,
-} from "../controllers/divisionController";
-import { authenticate, authorize } from "../middleware/authMiddleware";
+  setDivisionLeaderController,
+} from "../controllers/divisionController.js";
+import { authenticate, authorize } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
-router.use(authenticate, authorize(["ADMIN"]));
+// All division routes require authentication + ADMIN role
+router.use(authenticate as any, authorize(["ADMIN"]) as any);
 
 /**
  * @swagger
@@ -53,9 +55,9 @@ router.post("/", createDivisionController);
 
 /**
  * @swagger
- * /divisions/{id}:
- *   put:
- *     summary: Update a division
+ * /divisions/{id}/set-leader:
+ *   post:
+ *     summary: Set a division leader (member must be in division ≥ 6 months)
  *     tags: [Divisions]
  *     security:
  *       - bearerAuth: []
@@ -71,14 +73,29 @@ router.post("/", createDivisionController);
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [memberId]
  *             properties:
- *               name:
+ *               memberId:
  *                 type: string
- *               description:
- *                 type: string
+ *                 format: uuid
  *     responses:
  *       200:
- *         description: Division updated
+ *         description: Leader assigned
+ *       403:
+ *         description: Member not eligible (less than 6 months in division)
+ *       409:
+ *         description: Division already has a leader
+ */
+router.post("/:id/set-leader", setDivisionLeaderController);
+
+/**
+ * @swagger
+ * /divisions/{id}:
+ *   put:
+ *     summary: Update a division
+ *     tags: [Divisions]
+ *     security:
+ *       - bearerAuth: []
  */
 router.put("/:id", updateDivisionController);
 
@@ -90,17 +107,7 @@ router.put("/:id", updateDivisionController);
  *     tags: [Divisions]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       204:
- *         description: Division deleted
  */
 router.delete("/:id", deleteDivisionController);
 
 export default router;
-
