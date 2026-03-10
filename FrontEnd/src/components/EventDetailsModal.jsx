@@ -15,7 +15,11 @@ const EventDetailsModal = ({ event, onClose }) => {
 
                 {/* Event flyer image */}
                 <div className="event-modal-image-wrapper">
-                    <img src={event.image} alt={event.title} className="event-modal-image" />
+                    {event.image ? (
+                        <img src={event.image} alt={event.title} className="event-modal-image" />
+                    ) : (
+                        <div className="event-modal-image event-modal-image-placeholder" style={{ background: 'linear-gradient(135deg, #1a56db 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '4rem', fontWeight: 700 }}>{event.title?.charAt(0) || '?'}</div>
+                    )}
                     <div className="event-modal-image-overlay" />
                     <div className="event-modal-date-badge">
                         <span className="event-modal-month">{event.month}</span>

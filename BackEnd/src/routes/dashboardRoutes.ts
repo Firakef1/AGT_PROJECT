@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { dashboardSummaryController, dashboardActivitiesController } from "../controllers/dashboardController";
+import { dashboardSummaryController, dashboardActivitiesController, dashboardChartController } from "../controllers/dashboardController";
 import { authenticate } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -21,6 +21,7 @@ router.use(authenticate as any);
 router.get("/summary", dashboardSummaryController);
 router.get("/", dashboardSummaryController);
 router.get("/activities", dashboardActivitiesController);
+router.get("/chart", dashboardChartController);
 
 export default router;
 

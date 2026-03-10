@@ -3,6 +3,7 @@ import {
   financeSummaryController,
   recordTransactionController,
   listTransactionsController,
+  getBudgetController,
 } from "../controllers/financeController";
 import { authenticate, authorize } from "../middleware/authMiddleware";
 
@@ -88,6 +89,7 @@ router.get("/", listTransactionsController);
  *         description: Finance summary
  */
 router.get("/summary", financeSummaryController);
+router.get("/budget", getBudgetController);
 
 export default router;
 

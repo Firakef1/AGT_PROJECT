@@ -7,6 +7,8 @@ const createFamilySchema = z.object({
   description: z.string().optional(),
 });
 
+const updateFamilySchema = createFamilySchema.partial();
+
 export const getFamilies = async (req: Request, res: Response) => {
   try {
     const families = await prisma.family.findMany({
@@ -38,6 +40,36 @@ export const createFamily = async (req: Request, res: Response) => {
     res.status(201).json(family);
   } catch (err: any) {
     res.status(400).json({ message: "Invalid input", errors: err });
+  }
+};
+
+export const updateFamily = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id;
+    if (typeof id !== "string") {
+      return res.status(400).json({ message: "Invalid id" });
+    }
+    const data = updateFamilySchema.parse(req.body);
+    const family = await prisma.family.update({ where: { id }, data });
+    res.json(family);
+  } catch (err: any) {
+    if (err?.code === "P2025") return res.status(404).json({ message: "Family not found" });
+    res.status(400).json({ message: "Invalid input", errors: err });
+  }
+};
+
+export const deleteFamily = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id;
+    if (typeof id !== "string") {
+      return res.status(400).json({ message: "Invalid id" });
+    }
+    await prisma.member.updateMany({ where: { familyId: id }, data: { familyId: null } });
+    await prisma.family.delete({ where: { id } });
+    res.status(204).send();
+  } catch (err: any) {
+    if (err?.code === "P2025") return res.status(404).json({ message: "Family not found" });
+    res.status(500).json({ message: "Failed to delete family" });
   }
 };
 

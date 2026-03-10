@@ -30,6 +30,7 @@ const Finance = () => {
 
   const [transactionList, setTransactionList] = useState([])
   const [financeSummary, setFinanceSummary] = useState({ income: 0, expenses: 0, balance: 0, count: 0 })
+  const [budgetCategories, setBudgetCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -46,33 +47,18 @@ const Finance = () => {
   const [showBudgetModal, setShowBudgetModal] = useState(false)
   const [showAllTransactionsModal, setShowAllTransactionsModal] = useState(false)
 
-  // Filter states for the "View All" modal
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCategory, setFilterCategory] = useState('All')
   const [filterType, setFilterType] = useState('All')
 
   const budgetDetails = useMemo(() => {
-    const expenses = transactionList.filter(t => t.type === 'EXPENSE')
-    const categoryTotals = {}
-    expenses.forEach(t => {
-      const cat = t.description?.includes(' | Category: ') ? t.description.split(' | Category: ')[1] : 'Other'
-      categoryTotals[cat] = (categoryTotals[cat] || 0) + t.amount
+    return (budgetCategories || []).map((c) => {
+      const remaining = c.allocated - (c.spent || 0)
+      const status = (c.spent || 0) >= c.allocated ? 'Warning' : 'On Track'
+      const percent = c.allocated > 0 ? Math.min(((c.spent || 0) / c.allocated) * 100, 100).toFixed(1) : 0
+      return { name: c.name, allocated: c.allocated, spent: c.spent || 0, remaining, color: c.color, status, percent }
     })
-    
-    return Object.entries({
-      'Events': { allocated: 120000, color: '#1a56db' },
-      'Administrative': { allocated: 50000, color: '#d97706' },
-      'Social Services': { allocated: 80000, color: '#16a34a' },
-      'Maintenance': { allocated: 40000, color: '#dc2626' },
-      'Other': { allocated: 25000, color: '#7c3aed' },
-    }).map(([name, data]) => {
-      const spent = categoryTotals[name] || 0
-      const remaining = data.allocated - spent
-      const status = spent >= data.allocated ? 'Warning' : 'On Track'
-      const percent = Math.min((spent / data.allocated) * 100, 100).toFixed(1)
-      return { name, allocated: data.allocated, spent, remaining, color: data.color, status, percent }
-    })
-  }, [transactionList])
+  }, [budgetCategories])
 
   const budgetDistribution = useMemo(() => {
     const totalSpent = budgetDetails.reduce((acc, curr) => acc + curr.spent, 0)
@@ -100,15 +86,14 @@ const Finance = () => {
   const fetchFinanceData = async () => {
     try {
       setLoading(true)
-      const [summaryRes, transactionsRes] = await Promise.all([
+      const [summaryRes, transactionsRes, budgetRes] = await Promise.all([
         apiFetch('/finance/summary'),
-        apiFetch('/finance')
+        apiFetch('/finance'),
+        apiFetch('/finance/budget').catch(() => ({ categories: [] }))
       ])
       setFinanceSummary(summaryRes)
       setTransactionList(transactionsRes)
-      
-      // We can map mock chart data here if we want or just leave them empty
-      // for now until a real timeseries API exists.
+      setBudgetCategories(budgetRes?.categories || [])
     } catch (err) {
       console.error('Error fetching finance data:', err)
       setError('Failed to load finance data')

@@ -12,6 +12,7 @@ import dashboardRoutes from "./routes/dashboardRoutes";
 import familyRoutes from "./routes/familyRoutes";
 import settingRoutes from "./routes/settingRoutes";
 import reportRoutes from "./routes/reportRoutes";
+import notificationRoutes from "./routes/notificationRoutes";
 import { swaggerSpec } from "./config/swagger";
 import passport from "./config/googleAuth";
 import { ensureInitialAdmin } from "./utils/seedAdmin";
@@ -46,6 +47,7 @@ app.use("/dashboard", dashboardRoutes);
 app.use("/families", familyRoutes);
 app.use("/settings", settingRoutes);
 app.use("/reports", reportRoutes);
+app.use("/notifications", notificationRoutes);
 
 app.use(errorHandler);
 

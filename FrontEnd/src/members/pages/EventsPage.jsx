@@ -1,121 +1,204 @@
-import React from "react";
-import { CalendarDays, Clock, Sparkles, ArrowLeft } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { CalendarDays, Plus, Pencil, Trash2, ArrowLeft, Loader2, X } from "lucide-react";
+import { apiFetch } from "../../services/apiFetch";
 
-const FEATURES = [
-  "Upcoming events calendar and scheduling",
-  "Event registration and member sign-ups",
-  "Recurring events and series management",
-  "Event announcements and reminders",
-  "Attendance tracking per event",
-  "Post-event reports and summaries",
-];
-
-/**
- * EventsPage
- *
- * Placeholder page for the Events module.
- * Communicates what is planned and lets the user navigate back.
- *
- * Props:
- *   onNavigate {function} – navigate to another dashboard page
- */
 const EventsPage = ({ onNavigate }) => {
-  const accentColor  = "#7c3aed";
-  const accentBg     = "#f3e8ff";
-  const accentBorder = "#e9d5ff";
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [form, setForm] = useState({ title: "", description: "", startTime: "", endTime: "", location: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchEvents = async () => {
+    try {
+      const data = await apiFetch("/events");
+      setEvents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || "Failed to load events");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const openCreate = () => {
+    setEditingEvent(null);
+    setForm({
+      title: "",
+      description: "",
+      startTime: new Date().toISOString().slice(0, 16),
+      endTime: new Date(Date.now() + 3600000).toISOString().slice(0, 16),
+      location: "",
+    });
+    setModalOpen(true);
+  };
+
+  const openEdit = (event) => {
+    setEditingEvent(event);
+    setForm({
+      title: event.title || "",
+      description: event.description || "",
+      startTime: event.startTime ? new Date(event.startTime).toISOString().slice(0, 16) : "",
+      endTime: event.endTime ? new Date(event.endTime).toISOString().slice(0, 16) : "",
+      location: event.location || "",
+    });
+    setModalOpen(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.title || !form.startTime || !form.endTime) {
+      alert("Title, start time, and end time are required.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const body = {
+        title: form.title,
+        description: form.description || undefined,
+        startTime: new Date(form.startTime).toISOString(),
+        endTime: new Date(form.endTime).toISOString(),
+        location: form.location || undefined,
+      };
+      if (editingEvent) {
+        await apiFetch(`/events/${editingEvent.id}`, { method: "PUT", body: JSON.stringify(body) });
+      } else {
+        await apiFetch("/events", { method: "POST", body: JSON.stringify(body) });
+      }
+      setModalOpen(false);
+      await fetchEvents();
+    } catch (err) {
+      alert(err.message || "Failed to save event");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("Delete this event?")) return;
+    try {
+      await apiFetch(`/events/${id}`, { method: "DELETE" });
+      await fetchEvents();
+    } catch (err) {
+      alert(err.message || "Failed to delete event");
+    }
+  };
+
+  const formatDate = (d) => (d ? new Date(d).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : "—");
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 300 }}>
+        <Loader2 size={32} className="spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="placeholder-page">
-
-      {/* Icon bubble */}
-      <div
-        className="placeholder-icon-wrap"
-        style={{
-          background:  accentBg,
-          border:      `2px solid ${accentBorder}`,
-          boxShadow:   `0 8px 28px ${accentColor}22`,
-        }}
-      >
-        <CalendarDays size={40} color={accentColor} />
-      </div>
-
-      {/* Headline block */}
-      <div className="placeholder-content">
-        <h1>Events</h1>
-        <p
-          className="placeholder-tagline"
-          style={{ color: accentColor }}
-        >
-          Plan, schedule, and manage all division events in one place.
-        </p>
-        <p>
-          The Events module is currently under development. Once live, it will
-          allow division leaders to schedule fellowship events, manage
-          registrations, send announcements, and track participation across
-          the congregation.
-        </p>
-      </div>
-
-      {/* "Coming Soon" badge */}
-      <div
-        className="placeholder-badge"
-        style={{
-          background:  accentBg,
-          color:       accentColor,
-          borderColor: accentBorder,
-        }}
-      >
-        <Clock size={13} />
-        Coming Soon
-      </div>
-
-      {/* Planned features card */}
-      <div className="placeholder-features-card">
-        <div className="placeholder-features-header">
-          <Sparkles size={14} color={accentColor} />
-          <span className="placeholder-features-label">Planned Features</span>
+    <div className="events-page" style={{ padding: "1.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: "1.5rem" }}>Events</h1>
+          <p style={{ margin: "0.25rem 0 0", color: "var(--text-light)", fontSize: "0.9rem" }}>
+            Plan and manage division events.
+          </p>
         </div>
+        <button className="btn-accent" onClick={openCreate}>
+          <Plus size={16} /> New Event
+        </button>
+      </div>
 
-        <ul className="placeholder-feature-list">
-          {FEATURES.map((feature, idx) => (
-            <li key={idx} className="placeholder-feature-item">
-              <span
-                className="placeholder-feature-dot"
-                style={{ background: accentColor }}
-              />
-              {feature}
-            </li>
+      {error && <p style={{ color: "var(--red)", marginBottom: "1rem" }}>{error}</p>}
+
+      {events.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "3rem", background: "var(--white)", borderRadius: "var(--radius)", border: "1px solid var(--border)" }}>
+          <CalendarDays size={48} color="var(--text-light)" style={{ marginBottom: "1rem" }} />
+          <p style={{ color: "var(--text-light)" }}>No events yet. Create one to get started.</p>
+          <button className="btn-accent" onClick={openCreate} style={{ marginTop: "1rem" }}>Create Event</button>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: "1rem" }}>
+          {events.map((event) => (
+            <div
+              key={event.id}
+              style={{
+                padding: "1rem 1.25rem",
+                background: "var(--white)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                flexWrap: "wrap",
+                gap: "0.75rem",
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.1rem" }}>{event.title}</h3>
+                <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem", color: "var(--text-light)" }}>
+                  {formatDate(event.startTime)} – {formatDate(event.endTime)}
+                </p>
+                {event.location && <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem" }}>{event.location}</p>}
+                {event.description && <p style={{ margin: "0.5rem 0 0", fontSize: "0.9rem", color: "var(--text-secondary)" }}>{event.description}</p>}
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button type="button" className="mem-modal-btn cancel" onClick={() => openEdit(event)}><Pencil size={14} /> Edit</button>
+                <button type="button" className="mem-modal-btn submit" style={{ background: "var(--red)" }} onClick={() => handleDelete(event.id)}><Trash2 size={14} /> Delete</button>
+              </div>
+            </div>
           ))}
-        </ul>
-      </div>
+        </div>
+      )}
 
-      {/* Action buttons */}
-      <div className="placeholder-actions">
-        <button
-          className="placeholder-btn-primary"
-          style={{
-            background: accentColor,
-            color:      "#fff",
-          }}
-          onClick={() => onNavigate("overview")}
-        >
-          <ArrowLeft size={14} />
-          Back to Overview
+      {modalOpen && (
+        <div className="mem-modal-overlay" onClick={() => !submitting && setModalOpen(false)}>
+          <div className="mem-modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+            <div className="mem-modal-header">
+              <h3 className="mem-modal-title">{editingEvent ? "Edit Event" : "New Event"}</h3>
+              <button className="mem-modal-close" onClick={() => !submitting && setModalOpen(false)} disabled={submitting}><X size={17} /></button>
+            </div>
+            <form onSubmit={handleSubmit} className="mem-modal-body">
+              <div className="mem-form-group">
+                <label className="mem-form-label">Title *</label>
+                <input className="mem-form-input" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} required />
+              </div>
+              <div className="mem-form-group">
+                <label className="mem-form-label">Description</label>
+                <textarea className="mem-form-input" rows={3} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} />
+              </div>
+              <div className="mem-form-row">
+                <div className="mem-form-group">
+                  <label className="mem-form-label">Start *</label>
+                  <input type="datetime-local" className="mem-form-input" value={form.startTime} onChange={(e) => setForm((p) => ({ ...p, startTime: e.target.value }))} required />
+                </div>
+                <div className="mem-form-group">
+                  <label className="mem-form-label">End *</label>
+                  <input type="datetime-local" className="mem-form-input" value={form.endTime} onChange={(e) => setForm((p) => ({ ...p, endTime: e.target.value }))} required />
+                </div>
+              </div>
+              <div className="mem-form-group">
+                <label className="mem-form-label">Location</label>
+                <input className="mem-form-input" value={form.location} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
+              </div>
+              <div className="mem-modal-footer">
+                <button type="button" className="mem-modal-btn cancel" onClick={() => setModalOpen(false)} disabled={submitting}>Cancel</button>
+                <button type="submit" className="mem-modal-btn submit" disabled={submitting}>{submitting ? "Saving…" : "Save"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginTop: "1.5rem" }}>
+        <button type="button" className="placeholder-btn-secondary" onClick={() => onNavigate("overview")}>
+          <ArrowLeft size={14} /> Back to Overview
         </button>
-
-        <button
-          className="placeholder-btn-secondary"
-          onClick={() => onNavigate("members")}
-        >
-          Go to Members
-        </button>
       </div>
-
-      {/* Footer note */}
-      <p className="placeholder-footer-note">
-        Use the sidebar to navigate to any available section. This page will be
-        replaced once the Events module is fully launched.
-      </p>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { getFinanceSummary, recordTransaction, listTransactions } from "../services/financeService";
+import { getFinanceSummary, recordTransaction, listTransactions, getBudget } from "../services/financeService";
 import { sendEmail } from "../utils/email";
 
 const transactionSchema = z.object({
@@ -50,5 +50,12 @@ export async function listTransactionsController(req: Request, res: Response) {
 
   const transactions = await listTransactions({ divisionId });
   return res.json(transactions);
+}
+
+export async function getBudgetController(req: Request, res: Response) {
+  const divisionId =
+    typeof req.query.divisionId === "string" ? req.query.divisionId : undefined;
+  const categories = await getBudget({ divisionId });
+  return res.json({ categories });
 }
 

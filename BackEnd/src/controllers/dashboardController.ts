@@ -102,3 +102,50 @@ export async function dashboardActivitiesController(_req: Request, res: Response
   }
 }
 
+/** GET /dashboard/chart — time-series income/expenses by month for charts */
+export async function dashboardChartController(_req: Request, res: Response) {
+  try {
+    const transactions = await prisma.financeTransaction.findMany({
+      orderBy: { occurredAt: 'asc' },
+    });
+
+    const byMonth: Record<string, { income: number; expenses: number }> = {};
+    for (const t of transactions) {
+      const d = new Date(t.occurredAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!byMonth[key]) byMonth[key] = { income: 0, expenses: 0 };
+      if (t.type === 'INCOME') byMonth[key].income += Number(t.amount);
+      else byMonth[key].expenses += Number(t.amount);
+    }
+
+    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const sorted = Object.entries(byMonth).sort(([a], [b]) => a.localeCompare(b));
+    const monthly = sorted.slice(-12).map(([k, v]) => {
+      const parts = k.split('-');
+      const m = parts[1];
+      const idx = m ? Math.max(0, Math.min(11, parseInt(m, 10) - 1)) : 0;
+      return {
+        name: monthNames[idx],
+        income: Math.round(v.income),
+        expenses: Math.round(v.expenses),
+      };
+    });
+
+    const byYear: Record<string, { income: number; expenses: number }> = {};
+    for (const t of transactions) {
+      const y = new Date(t.occurredAt).getFullYear().toString();
+      if (!byYear[y]) byYear[y] = { income: 0, expenses: 0 };
+      if (t.type === 'INCOME') byYear[y].income += Number(t.amount);
+      else byYear[y].expenses += Number(t.amount);
+    }
+    const yearly = Object.entries(byYear)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, v]) => ({ name, income: Math.round(v.income), expenses: Math.round(v.expenses) }));
+
+    res.json({ monthly, yearly });
+  } catch (error) {
+    console.error('Dashboard chart error:', error);
+    res.status(500).json({ error: 'Failed to fetch chart data' });
+  }
+}
+

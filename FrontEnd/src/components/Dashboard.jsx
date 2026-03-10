@@ -23,24 +23,6 @@ import {
 } from "lucide-react";
 import { apiFetch } from "../services/apiFetch.js";
 
-const monthlyData = [
-  { name: "JAN", income: 180000, expenses: 120000 },
-  { name: "FEB", income: 150000, expenses: 140000 },
-  { name: "MAR", income: 280000, expenses: 180000 },
-  { name: "APR", income: 320000, expenses: 220000 },
-  { name: "MAY", income: 480000, expenses: 350000 },
-  { name: "JUN", income: 542000, expenses: 380000 },
-];
-
-const yearlyData = [
-  { name: "2021", income: 1200000, expenses: 900000 },
-  { name: "2022", income: 1800000, expenses: 1200000 },
-  { name: "2023", income: 2400000, expenses: 1600000 },
-  { name: "2024", income: 3200000, expenses: 2100000 },
-  { name: "2025", income: 4500000, expenses: 2800000 },
-  { name: "2026", income: 5420000, expenses: 3200000 },
-];
-
 const iconMap = {
   UserPlus: UserPlus,
   Building2: Building2,
@@ -62,17 +44,20 @@ const Dashboard = ({ setActivePage }) => {
     finance: { income: 0, expenses: 0, balance: 0 } 
   });
   const [activities, setActivities] = useState([]);
+  const [chartData, setChartData] = useState({ monthly: [], yearly: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [statsData, activitiesData] = await Promise.all([
+        const [statsData, activitiesData, chartDataRes] = await Promise.all([
           apiFetch("/dashboard/summary"),
-          apiFetch("/dashboard/activities")
+          apiFetch("/dashboard/activities"),
+          apiFetch("/dashboard/chart").catch(() => ({ monthly: [], yearly: [] })),
         ]);
         setDashboardData(statsData);
         setActivities(activitiesData || []);
+        setChartData(chartDataRes?.monthly ? chartDataRes : { monthly: [], yearly: [] });
       } catch (err) {
         console.error("Failed to fetch dashboard stats", err);
       } finally {
@@ -82,7 +67,9 @@ const Dashboard = ({ setActivePage }) => {
     fetchDashboardData();
   }, []);
 
-  const chartData = chartPeriod === "month" ? monthlyData : yearlyData;
+  const chartSeries = chartPeriod === "month" 
+    ? (chartData.monthly || []) 
+    : (chartData.yearly || []);
 
   const summaryCards = [
     {
@@ -191,7 +178,7 @@ const Dashboard = ({ setActivePage }) => {
           </div>
           <div className="dash-chart-container">
             <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={[{ name: 'Total', income: dashboardData.finance.income, expenses: dashboardData.finance.expenses }]}>
+              <AreaChart data={chartSeries.length > 0 ? chartSeries : [{ name: 'Total', income: dashboardData.finance.income, expenses: dashboardData.finance.expenses }]}>
                 <defs>
                   <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#1a56db" stopOpacity={0.15} />

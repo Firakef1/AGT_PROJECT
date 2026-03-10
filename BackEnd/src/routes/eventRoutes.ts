@@ -9,6 +9,13 @@ import { authenticate, authorize } from "../middleware/authMiddleware";
 
 const router = Router();
 
+/** Public: list upcoming events (no auth) for landing page */
+router.get("/public", async (req, res) => {
+  const { listEvents } = await import("../services/eventService");
+  const events = await listEvents({ scope: "upcoming" });
+  return res.json(events);
+});
+
 router.use(authenticate);
 
 /**

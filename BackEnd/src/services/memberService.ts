@@ -237,14 +237,16 @@ export async function updateMember(
     phone?: string | null;
     gender?: string | null;
     divisionId?: string | null;
+    familyId?: string | null;
     section?: number | null;
     language?: "AFAN_OROMO" | "AMHARIC" | "BOTH" | null;
   }>,
 ) {
   const member = await prisma.member.findUnique({ where: { id } });
   if (!member) throw new AppError(404, "Member not found.");
-
-  return prisma.member.update({ where: { id }, data });
+  const updateData: Record<string, unknown> = { ...data };
+  if (updateData.familyId === "") updateData.familyId = null;
+  return prisma.member.update({ where: { id }, data: updateData as any });
 }
 
 export async function deleteMember(id: string) {

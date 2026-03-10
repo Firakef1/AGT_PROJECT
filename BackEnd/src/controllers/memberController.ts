@@ -18,10 +18,10 @@ const memberRegisterSchema = z.object({
   fullName: z.string().min(1),
   email: z.string().email(),
   phone: z.string().optional().nullable().or(z.literal("")),
-  gender: z.enum(["MALE", "FEMALE"], { required_error: "Gender is required" }),
+  gender: z.enum(["MALE", "FEMALE"]),
   divisionId: z.string().uuid().optional().nullable().or(z.literal("")),
   section: z.number().int().optional().nullable(),
-  language: z.enum(["AFAN_OROMO", "AMHARIC", "BOTH"], { required_error: "At least one language is required" }),
+  language: z.enum(["AFAN_OROMO", "AMHARIC", "BOTH"]),
 });
 
 const memberUpdateSchema = z.object({
@@ -30,6 +30,7 @@ const memberUpdateSchema = z.object({
   phone: z.string().optional().nullable().or(z.literal("")),
   gender: z.enum(["MALE", "FEMALE"]).optional().nullable(),
   divisionId: z.string().uuid().optional().nullable().or(z.literal("")),
+  familyId: z.string().uuid().optional().nullable().or(z.literal("")),
   section: z.number().int().optional().nullable(),
   language: z.enum(["AFAN_OROMO", "AMHARIC", "BOTH"]).optional().nullable(),
 });

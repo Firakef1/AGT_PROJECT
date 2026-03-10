@@ -27,17 +27,20 @@ const formatDate = (iso) => {
 const MembersOverview = ({ user, onNavigate }) => {
   const [members, setMembers] = useState([]);
   const [divisions, setDivisions] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [m, d] = await Promise.all([
+        const [m, d, a] = await Promise.all([
           apiFetch("/members"),
-          apiFetch("/divisions")
+          apiFetch("/divisions"),
+          apiFetch("/dashboard/activities").catch(() => [])
         ]);
-        setMembers(m);
-        setDivisions(d);
+        setMembers(m || []);
+        setDivisions(d || []);
+        setActivities(Array.isArray(a) ? a : []);
       } catch (err) {
         console.error("Failed to fetch overview data:", err);
       } finally {
@@ -105,17 +108,8 @@ const MembersOverview = ({ user, onNavigate }) => {
     },
   ];
 
-  // ── Activity (Placeholder for now) ──
-  const ACTIVITY = [
-    {
-      icon: UserPlus,
-      iconBg: "#e8f0fe",
-      iconColor: "#1a56db",
-      title: "System Online",
-      desc: "Members Division portal is live.",
-      time: "JUST NOW",
-    },
-  ];
+  const activityList = activities.length > 0 ? activities.slice(0, 10) : [];
+  const iconMap = { UserPlus, Wallet: Users, Building2: UsersRound };
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -205,24 +199,28 @@ const MembersOverview = ({ user, onNavigate }) => {
           </div>
 
           <div className="members-activity-list">
-            {ACTIVITY.map((item, idx) => {
-              const Icon = item.icon;
-              return (
-                <div key={idx} className="members-activity-item">
-                  <div
-                    className="members-activity-icon"
-                    style={{ background: item.iconBg }}
-                  >
-                    <Icon size={15} color={item.iconColor} />
+            {activityList.length === 0 ? (
+              <p style={{ padding: "1rem", color: "var(--text-light)", fontSize: "0.9rem" }}>No recent activity yet.</p>
+            ) : (
+              activityList.map((item, idx) => {
+                const Icon = iconMap[item.icon] || UserPlus;
+                return (
+                  <div key={idx} className="members-activity-item">
+                    <div
+                      className="members-activity-icon"
+                      style={{ background: item.iconBg || "#e8f0fe" }}
+                    >
+                      <Icon size={15} color={item.iconColor || "#1a56db"} />
+                    </div>
+                    <div className="members-activity-content">
+                      <p className="members-activity-title">{item.title}</p>
+                      <p className="members-activity-desc">{item.description}</p>
+                      <span className="members-activity-time">{item.time}</span>
+                    </div>
                   </div>
-                  <div className="members-activity-content">
-                    <p className="members-activity-title">{item.title}</p>
-                    <p className="members-activity-desc">{item.desc}</p>
-                    <span className="members-activity-time">{item.time}</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 
