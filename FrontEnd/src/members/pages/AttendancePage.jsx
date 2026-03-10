@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { CalendarCheck, ArrowLeft, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle, XCircle, TrendingUp } from "lucide-react";
 import { apiFetch } from "../../services/apiFetch";
 
-const AttendancePage = ({ onNavigate }) => {
+const AttendancePage = ({ user, onNavigate }) => {
+  const myDivisionId = user?.member?.divisionId ?? null;
+  const [divisions, setDivisions] = useState([]);
+  const [divisionId, setDivisionId] = useState(myDivisionId || "");
   const [events, setEvents] = useState([]);
   const [members, setMembers] = useState([]);
   const [selectedEventId, setSelectedEventId] = useState(null);
@@ -10,16 +13,38 @@ const AttendancePage = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [marking, setMarking] = useState(null);
+  const [participationSummary, setParticipationSummary] = useState(null);
+
+  const fetchDivisions = async () => {
+    try {
+      const data = await apiFetch("/divisions");
+      setDivisions(Array.isArray(data) ? data : []);
+    } catch {
+      setDivisions([]);
+    }
+  };
 
   const fetchEventsAndMembers = async () => {
+    if (!divisionId) {
+      setEvents([]);
+      setMembers([]);
+      setLoading(false);
+      return;
+    }
     try {
       const [eventsRes, membersRes] = await Promise.all([
-        apiFetch("/events"),
-        apiFetch("/members"),
+        apiFetch(`/events?divisionId=${encodeURIComponent(divisionId)}`),
+        apiFetch("/members").then((list) =>
+          Array.isArray(list)
+            ? list.filter((m) => m.status === "APPROVED" && m.divisionId === divisionId)
+            : []
+        ),
       ]);
       setEvents(Array.isArray(eventsRes) ? eventsRes : []);
-      setMembers(Array.isArray(membersRes) ? membersRes.filter((m) => m.status === "APPROVED") : []);
+      setMembers(Array.isArray(membersRes) ? membersRes : []);
       if (!selectedEventId && eventsRes?.length) setSelectedEventId(eventsRes[0].id);
+      else if (selectedEventId && !eventsRes?.some((e) => e.id === selectedEventId))
+        setSelectedEventId(eventsRes?.length ? eventsRes[0].id : null);
     } catch (err) {
       console.error("Failed to load data", err);
     } finally {
@@ -27,9 +52,31 @@ const AttendancePage = ({ onNavigate }) => {
     }
   };
 
+  const fetchParticipationSummary = async () => {
+    if (!divisionId) {
+      setParticipationSummary(null);
+      return;
+    }
+    try {
+      const data = await apiFetch(`/attendance/division/${divisionId}/summary`);
+      setParticipationSummary(data);
+    } catch {
+      setParticipationSummary(null);
+    }
+  };
+
   useEffect(() => {
-    fetchEventsAndMembers();
+    fetchDivisions();
   }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchEventsAndMembers();
+  }, [divisionId]);
+
+  useEffect(() => {
+    fetchParticipationSummary();
+  }, [divisionId]);
 
   useEffect(() => {
     if (!selectedEventId) {
@@ -58,8 +105,12 @@ const AttendancePage = ({ onNavigate }) => {
         method: "POST",
         body: JSON.stringify({ memberId, eventId: selectedEventId, status }),
       });
-      const updated = await apiFetch(`/attendance/event/${selectedEventId}`);
+      const [updated, summary] = await Promise.all([
+        apiFetch(`/attendance/event/${selectedEventId}`),
+        divisionId ? apiFetch(`/attendance/division/${divisionId}/summary`) : null,
+      ]);
       setAttendance(Array.isArray(updated) ? updated : []);
+      if (summary) setParticipationSummary(summary);
     } catch (err) {
       alert(err.message || "Failed to mark attendance");
     } finally {
@@ -82,9 +133,63 @@ const AttendancePage = ({ onNavigate }) => {
       <div style={{ marginBottom: "1.5rem" }}>
         <h1 style={{ margin: 0, fontSize: "1.5rem" }}>Attendance</h1>
         <p style={{ margin: "0.25rem 0 0", color: "var(--text-light)", fontSize: "0.9rem" }}>
-          Mark and view attendance by event.
+          Track attendance by event and view participation overview for your division.
         </p>
       </div>
+
+      {divisions.length > 0 && (
+        <div className="mem-form-group" style={{ marginBottom: "1rem" }}>
+          <label className="mem-form-label">Division</label>
+          <select
+            className="mem-form-select"
+            value={divisionId}
+            onChange={(e) => setDivisionId(e.target.value)}
+            style={{ maxWidth: 320 }}
+          >
+            <option value="">— Select division —</option>
+            {divisions.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {participationSummary && (
+        <div style={{ marginBottom: "1.5rem", background: "var(--white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+          <div style={{ padding: "0.75rem 1rem", background: "var(--gray-50)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <TrendingUp size={18} color="var(--blue)" />
+            <strong>Participation overview</strong>
+            <span style={{ color: "var(--text-light)", fontSize: "0.85rem" }}>
+              ({participationSummary.totalDivisionEvents} division events)
+            </span>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
+                <th style={{ textAlign: "left", padding: "0.6rem 1rem" }}>Member</th>
+                <th style={{ textAlign: "right", padding: "0.6rem 1rem" }}>Present</th>
+                <th style={{ textAlign: "right", padding: "0.6rem 1rem" }}>Participation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {participationSummary.members.map((row) => (
+                <tr key={row.memberId} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <td style={{ padding: "0.6rem 1rem" }}>{row.fullName} <span style={{ color: "var(--text-light)", fontSize: "0.8rem" }}>({row.email})</span></td>
+                  <td style={{ textAlign: "right", padding: "0.6rem 1rem" }}>{row.presentCount} / {row.totalEvents}</td>
+                  <td style={{ textAlign: "right", padding: "0.6rem 1rem" }}>
+                    <span style={{ color: row.participationPercentage >= 70 ? "#16a34a" : row.participationPercentage >= 40 ? "#d97706" : "#dc2626", fontWeight: 600 }}>
+                      {row.participationPercentage}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {participationSummary.members.length === 0 && (
+            <p style={{ padding: "1.5rem", textAlign: "center", color: "var(--text-light)" }}>No members in this division yet.</p>
+          )}
+        </div>
+      )}
 
       <div className="mem-form-group" style={{ marginBottom: "1.5rem" }}>
         <label className="mem-form-label">Select Event</label>
@@ -100,7 +205,9 @@ const AttendancePage = ({ onNavigate }) => {
         </select>
       </div>
 
-      {!selectedEventId ? (
+      {!divisionId ? (
+        <p style={{ color: "var(--text-light)" }}>Select a division to see events and mark attendance.</p>
+      ) : !selectedEventId ? (
         <p style={{ color: "var(--text-light)" }}>Select an event to mark attendance.</p>
       ) : loadingAttendance ? (
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "var(--text-light)" }}>

@@ -20,18 +20,25 @@ export async function createEvent(data: {
   });
 }
 
-export async function listEvents(params?: { scope?: "upcoming" | "past" }) {
+export async function listEvents(params?: {
+  scope?: "upcoming" | "past";
+  divisionId?: string;
+}) {
   const now = new Date();
-  let where: Record<string, unknown> | undefined;
+  const where: Record<string, unknown> = {};
 
   if (params?.scope === "upcoming") {
-    where = { startTime: { gte: now } };
+    where.startTime = { gte: now };
   } else if (params?.scope === "past") {
-    where = { endTime: { lt: now } };
+    where.endTime = { lt: now };
+  }
+
+  if (params?.divisionId) {
+    where.divisionId = params.divisionId;
   }
 
   return prisma.event.findMany({
-    where,
+    where: Object.keys(where).length ? where : undefined,
     orderBy: { startTime: "asc" },
     include: { division: true, expectedFamilies: true },
   });

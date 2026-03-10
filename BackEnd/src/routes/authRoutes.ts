@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import {
   loginController,
+  meController,
   registerController,
 } from "../controllers/authController";
 import { authenticate, authorize } from "../middleware/authMiddleware";
@@ -75,6 +76,22 @@ router.post(
  *         description: Invalid input
  */
 router.post("/login", loginController);
+
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current user (with member and division for division scoping)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user with member.divisionId and member.division
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/me", authenticate, meController);
 
 /**
  * @swagger

@@ -10,14 +10,13 @@ import { authenticate, authorize } from "../middleware/authMiddleware";
 
 const router = Router();
 
-// All division routes require authentication + ADMIN role
-router.use(authenticate as any, authorize(["ADMIN"]) as any);
+router.use(authenticate as any);
 
 /**
  * @swagger
  * /divisions:
  *   get:
- *     summary: List all divisions
+ *     summary: List all divisions (ADMIN, MEMBERS_MANAGER, DIVISION_HEAD)
  *     tags: [Divisions]
  *     security:
  *       - bearerAuth: []
@@ -25,7 +24,10 @@ router.use(authenticate as any, authorize(["ADMIN"]) as any);
  *       200:
  *         description: List of divisions
  */
-router.get("/", listDivisionsController);
+router.get("/", authorize(["ADMIN", "MEMBERS_MANAGER", "DIVISION_HEAD"]) as any, listDivisionsController);
+
+// Create/update/delete/set-leader require ADMIN only
+router.post("/", authorize(["ADMIN"]) as any, createDivisionController);
 
 /**
  * @swagger
@@ -51,8 +53,6 @@ router.get("/", listDivisionsController);
  *       201:
  *         description: Division created
  */
-router.post("/", createDivisionController);
-
 /**
  * @swagger
  * /divisions/{id}/set-leader:
@@ -86,7 +86,7 @@ router.post("/", createDivisionController);
  *       409:
  *         description: Division already has a leader
  */
-router.post("/:id/set-leader", setDivisionLeaderController);
+router.post("/:id/set-leader", authorize(["ADMIN"]) as any, setDivisionLeaderController);
 
 /**
  * @swagger
@@ -97,7 +97,7 @@ router.post("/:id/set-leader", setDivisionLeaderController);
  *     security:
  *       - bearerAuth: []
  */
-router.put("/:id", updateDivisionController);
+router.put("/:id", authorize(["ADMIN"]) as any, updateDivisionController);
 
 /**
  * @swagger
@@ -108,6 +108,6 @@ router.put("/:id", updateDivisionController);
  *     security:
  *       - bearerAuth: []
  */
-router.delete("/:id", deleteDivisionController);
+router.delete("/:id", authorize(["ADMIN"]) as any, deleteDivisionController);
 
 export default router;

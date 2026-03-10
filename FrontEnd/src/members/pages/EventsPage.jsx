@@ -2,18 +2,24 @@ import React, { useState, useEffect } from "react";
 import { CalendarDays, Plus, Pencil, Trash2, ArrowLeft, Loader2, X } from "lucide-react";
 import { apiFetch } from "../../services/apiFetch";
 
-const EventsPage = ({ onNavigate }) => {
+const EventsPage = ({ user, onNavigate }) => {
+  const myDivisionId = user?.member?.divisionId ?? null;
   const [events, setEvents] = useState([]);
+  const [divisions, setDivisions] = useState([]);
+  const [filterDivisionId, setFilterDivisionId] = useState(myDivisionId || "");
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [form, setForm] = useState({ title: "", description: "", startTime: "", endTime: "", location: "" });
+  const [form, setForm] = useState({ title: "", description: "", startTime: "", endTime: "", location: "", divisionId: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   const fetchEvents = async () => {
     try {
-      const data = await apiFetch("/events");
+      const url = filterDivisionId
+        ? `/events?divisionId=${encodeURIComponent(filterDivisionId)}`
+        : "/events";
+      const data = await apiFetch(url);
       setEvents(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || "Failed to load events");
@@ -22,9 +28,23 @@ const EventsPage = ({ onNavigate }) => {
     }
   };
 
+  const fetchDivisions = async () => {
+    try {
+      const data = await apiFetch("/divisions");
+      setDivisions(Array.isArray(data) ? data : []);
+    } catch {
+      setDivisions([]);
+    }
+  };
+
   useEffect(() => {
-    fetchEvents();
+    fetchDivisions();
   }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchEvents();
+  }, [filterDivisionId]);
 
   const openCreate = () => {
     setEditingEvent(null);
@@ -34,6 +54,7 @@ const EventsPage = ({ onNavigate }) => {
       startTime: new Date().toISOString().slice(0, 16),
       endTime: new Date(Date.now() + 3600000).toISOString().slice(0, 16),
       location: "",
+      divisionId: myDivisionId || "",
     });
     setModalOpen(true);
   };
@@ -46,6 +67,7 @@ const EventsPage = ({ onNavigate }) => {
       startTime: event.startTime ? new Date(event.startTime).toISOString().slice(0, 16) : "",
       endTime: event.endTime ? new Date(event.endTime).toISOString().slice(0, 16) : "",
       location: event.location || "",
+      divisionId: event.divisionId || "",
     });
     setModalOpen(true);
   };
@@ -64,6 +86,7 @@ const EventsPage = ({ onNavigate }) => {
         startTime: new Date(form.startTime).toISOString(),
         endTime: new Date(form.endTime).toISOString(),
         location: form.location || undefined,
+        divisionId: form.divisionId && form.divisionId.trim() ? form.divisionId.trim() : undefined,
       };
       if (editingEvent) {
         await apiFetch(`/events/${editingEvent.id}`, { method: "PUT", body: JSON.stringify(body) });
@@ -101,17 +124,34 @@ const EventsPage = ({ onNavigate }) => {
 
   return (
     <div className="events-page" style={{ padding: "1.5rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem", marginBottom: "1.5rem" }}>
         <div>
           <h1 style={{ margin: 0, fontSize: "1.5rem" }}>Events</h1>
           <p style={{ margin: "0.25rem 0 0", color: "var(--text-light)", fontSize: "0.9rem" }}>
-            Plan and manage division events.
+            Plan and manage division events. Division members receive an email with an option to add the event to Google Calendar.
           </p>
         </div>
         <button className="btn-accent" onClick={openCreate}>
           <Plus size={16} /> New Event
         </button>
       </div>
+
+      {divisions.length > 0 && (
+        <div className="mem-form-group" style={{ marginBottom: "1rem" }}>
+          <label className="mem-form-label">Division filter</label>
+          <select
+            className="mem-form-select"
+            value={filterDivisionId}
+            onChange={(e) => setFilterDivisionId(e.target.value)}
+            style={{ maxWidth: 280 }}
+          >
+            <option value="">All divisions</option>
+            {divisions.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {error && <p style={{ color: "var(--red)", marginBottom: "1rem" }}>{error}</p>}
 
@@ -143,6 +183,9 @@ const EventsPage = ({ onNavigate }) => {
                 <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem", color: "var(--text-light)" }}>
                   {formatDate(event.startTime)} – {formatDate(event.endTime)}
                 </p>
+                {event.division?.name && (
+                  <p style={{ margin: "0.25rem 0 0", fontSize: "0.8rem", color: "var(--blue)" }}>{event.division.name}</p>
+                )}
                 {event.location && <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem" }}>{event.location}</p>}
                 {event.description && <p style={{ margin: "0.5rem 0 0", fontSize: "0.9rem", color: "var(--text-secondary)" }}>{event.description}</p>}
               </div>
@@ -185,6 +228,21 @@ const EventsPage = ({ onNavigate }) => {
                 <label className="mem-form-label">Location</label>
                 <input className="mem-form-input" value={form.location} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
               </div>
+              {divisions.length > 0 && (
+                <div className="mem-form-group">
+                  <label className="mem-form-label">Division (members of this division will receive an email)</label>
+                  <select
+                    className="mem-form-select"
+                    value={form.divisionId}
+                    onChange={(e) => setForm((p) => ({ ...p, divisionId: e.target.value }))}
+                  >
+                    <option value="">— No division —</option>
+                    {divisions.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="mem-modal-footer">
                 <button type="button" className="mem-modal-btn cancel" onClick={() => setModalOpen(false)} disabled={submitting}>Cancel</button>
                 <button type="submit" className="mem-modal-btn submit" disabled={submitting}>{submitting ? "Saving…" : "Save"}</button>

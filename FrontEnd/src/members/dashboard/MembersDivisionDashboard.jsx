@@ -50,10 +50,10 @@ const MembersDivisionDashboard = ({ user, onLogout, onNavigateToMain }) => {
         return <FamiliesPage onNavigate={navigateTo} />;
 
       case "attendance":
-        return <AttendancePage onNavigate={navigateTo} />;
+        return <AttendancePage user={user} onNavigate={navigateTo} />;
 
       case "events":
-        return <EventsPage onNavigate={navigateTo} />;
+        return <EventsPage user={user} onNavigate={navigateTo} />;
 
       case "notifications":
         return <NotificationsPage onNavigate={navigateTo} />;

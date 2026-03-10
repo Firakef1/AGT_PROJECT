@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { loginUser, registerUser } from "../services/authService";
+import { getCurrentUser, loginUser, registerUser } from "../services/authService";
+import { AuthRequest } from "../middleware/authMiddleware";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -43,5 +44,17 @@ export async function loginController(req: Request, res: Response) {
   }
 
   return res.json(result);
+}
+
+export async function meController(req: Request, res: Response) {
+  const authReq = req as AuthRequest;
+  if (!authReq.user?.id) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const user = await getCurrentUser(authReq.user.id);
+  if (!user) {
+    return res.status(401).json({ message: "User not found" });
+  }
+  return res.json(user);
 }
 

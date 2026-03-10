@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import {
+  getDivisionAttendanceSummary,
   getEventAttendance,
   getMemberAttendanceSummary,
   markAttendance,
@@ -113,6 +114,18 @@ export async function getMemberAttendanceSummaryController(
     return res.status(400).json({ message: "Invalid memberId" });
   }
   const summary = await getMemberAttendanceSummary(memberId);
+  return res.json(summary);
+}
+
+export async function getDivisionAttendanceSummaryController(
+  req: Request,
+  res: Response,
+) {
+  const divisionId = req.params.divisionId;
+  if (typeof divisionId !== "string") {
+    return res.status(400).json({ message: "Invalid divisionId" });
+  }
+  const summary = await getDivisionAttendanceSummary(divisionId);
   return res.json(summary);
 }
 
