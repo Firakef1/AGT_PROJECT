@@ -47,7 +47,9 @@ model Family {
   id          String   @id @default(uuid())
   name        String   @unique
   description String?
-  members     Member[]
+  leaderId    String?  @unique
+  leader      Member?  @relation("FamilyLeader", fields: [leaderId], references: [id])
+  members     Member[] @relation("FamilyMembers")
   events      Event[]  @relation("EventToFamily")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -77,7 +79,8 @@ model Member {
   division     Division?     @relation(fields: [divisionId], references: [id])
   divisionJoinedAt DateTime?
   familyId     String?
-  family       Family?       @relation(fields: [familyId], references: [id])
+  family       Family?       @relation("FamilyMembers", fields: [familyId], references: [id])
+  ledFamily    Family?       @relation("FamilyLeader")
   familyRole   String?
   section      Int?
   language     Language?

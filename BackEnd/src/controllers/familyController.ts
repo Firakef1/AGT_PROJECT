@@ -5,6 +5,7 @@ import { z } from "zod";
 const createFamilySchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
+  leaderId: z.string().uuid().optional().nullable().or(z.literal("")),
 });
 
 const updateFamilySchema = createFamilySchema.partial();
@@ -13,6 +14,7 @@ export const getFamilies = async (req: Request, res: Response) => {
   try {
     const families = await prisma.family.findMany({
       include: {
+        leader: { select: { id: true, fullName: true, email: true } },
         members: {
           select: {
             id: true,
@@ -33,13 +35,31 @@ export const getFamilies = async (req: Request, res: Response) => {
   }
 };
 
+async function validateLeaderId(leaderId: string | null | undefined): Promise<void> {
+  if (!leaderId || leaderId.trim() === "") return;
+  const member = await prisma.member.findUnique({
+    where: { id: leaderId },
+    select: { status: true },
+  });
+  if (!member) throw new Error("Selected leader (member) not found.");
+  if (member.status !== "APPROVED") throw new Error("Family leader must be an approved member.");
+}
+
 export const createFamily = async (req: Request, res: Response) => {
   try {
-    const data = createFamilySchema.parse(req.body);
-    const family = await prisma.family.create({ data });
-    res.status(201).json(family);
+    const raw = createFamilySchema.parse(req.body);
+    const leaderId = raw.leaderId && raw.leaderId.trim() !== "" ? raw.leaderId : null;
+    await validateLeaderId(leaderId);
+    const family = await prisma.family.create({
+      data: { name: raw.name, description: raw.description ?? undefined, leaderId },
+    });
+    const withLeader = await prisma.family.findUnique({
+      where: { id: family.id },
+      include: { leader: { select: { id: true, fullName: true, email: true } }, members: true },
+    });
+    res.status(201).json(withLeader ?? family);
   } catch (err: any) {
-    res.status(400).json({ message: "Invalid input", errors: err });
+    res.status(400).json({ message: err?.message ?? "Invalid input", errors: err });
   }
 };
 
@@ -49,12 +69,24 @@ export const updateFamily = async (req: Request, res: Response) => {
     if (typeof id !== "string") {
       return res.status(400).json({ message: "Invalid id" });
     }
-    const data = updateFamilySchema.parse(req.body);
-    const family = await prisma.family.update({ where: { id }, data });
-    res.json(family);
+    const raw = updateFamilySchema.parse(req.body);
+    const leaderId = raw.leaderId !== undefined
+      ? (raw.leaderId && raw.leaderId.trim() !== "" ? raw.leaderId : null)
+      : undefined;
+    if (leaderId !== undefined) await validateLeaderId(leaderId);
+    const data: Record<string, unknown> = {};
+    if (raw.name !== undefined) data.name = raw.name;
+    if (raw.description !== undefined) data.description = raw.description;
+    if (leaderId !== undefined) data.leaderId = leaderId;
+    const family = await prisma.family.update({ where: { id }, data: data as any });
+    const withLeader = await prisma.family.findUnique({
+      where: { id },
+      include: { leader: { select: { id: true, fullName: true, email: true } }, members: true },
+    });
+    res.json(withLeader ?? family);
   } catch (err: any) {
     if (err?.code === "P2025") return res.status(404).json({ message: "Family not found" });
-    res.status(400).json({ message: "Invalid input", errors: err });
+    res.status(400).json({ message: err?.message ?? "Invalid input", errors: err });
   }
 };
 

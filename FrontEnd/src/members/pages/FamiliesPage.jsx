@@ -59,15 +59,20 @@ const FamiliesPage = () => {
   const handleFamilySubmit = async (data) => {
     try {
       const isEdit = data.id && typeof data.id === "string";
+      const payload = {
+        name: data.name,
+        description: data.description || "",
+        leaderId: data.leaderId || null,
+      };
       if (isEdit) {
         await apiFetch(`/families/${data.id}`, {
           method: "PUT",
-          body: JSON.stringify({ name: data.name, description: data.description || "" }),
+          body: JSON.stringify(payload),
         });
       } else {
         await apiFetch("/families", {
           method: "POST",
-          body: JSON.stringify({ name: data.name, description: data.description || "" }),
+          body: JSON.stringify(payload),
         });
       }
       setFamilyModalOpen(false);

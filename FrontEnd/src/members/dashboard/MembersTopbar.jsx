@@ -9,6 +9,7 @@ import {
   UsersRound,
   UserCheck,
   X,
+  ArrowLeft,
 } from "lucide-react";
 
 // ── Page title map ────────────────────────────────────────────────────────────
@@ -74,7 +75,7 @@ const INITIAL_NOTIFS = [
  *   activePage {string}   – current page key (used to derive the title)
  *   onLogout   {function} – called when the user signs out
  */
-const MembersTopbar = ({ user, activePage, onLogout }) => {
+const MembersTopbar = ({ user, activePage, onLogout, onBack, canGoBack }) => {
   const [notifs, setNotifs]           = useState(INITIAL_NOTIFS);
   const [notifOpen, setNotifOpen]     = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -133,14 +134,27 @@ const MembersTopbar = ({ user, activePage, onLogout }) => {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <header className="members-topbar">
-      {/* Left — breadcrumb + page title */}
       <div className="members-topbar-left">
-        <div className="members-topbar-breadcrumb">
-          <span className="members-topbar-division">Members Division</span>
-          <span className="members-topbar-sep">/</span>
-          <span className="members-topbar-page">{pageTitle}</span>
+        {canGoBack && (
+          <button
+            type="button"
+            className="members-topbar-back"
+            onClick={onBack}
+            title="Back to previous page"
+            aria-label="Back to previous page"
+          >
+            <ArrowLeft size={20} />
+            <span>Back</span>
+          </button>
+        )}
+        <div className="members-topbar-breadcrumb-wrap">
+          <div className="members-topbar-breadcrumb">
+            <span className="members-topbar-division">Members Division</span>
+            <span className="members-topbar-sep">/</span>
+            <span className="members-topbar-page">{pageTitle}</span>
+          </div>
+          <h1 className="members-topbar-title">{pageTitle}</h1>
         </div>
-        <h1 className="members-topbar-title">{pageTitle}</h1>
       </div>
 
       {/* Right — actions */}

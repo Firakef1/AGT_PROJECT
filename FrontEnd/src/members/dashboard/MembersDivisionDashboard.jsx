@@ -21,13 +21,23 @@ import "../members-dashboard.css";
  *                                 portal (sets App.jsx activePage → "dashboard")
  */
 const MembersDivisionDashboard = ({ user, onLogout, onNavigateToMain }) => {
-  const [activePage, setActivePage] = useState("overview");
+  const [history, setHistory] = useState(["overview"]);
+  const activePage = history[history.length - 1];
 
-  // ── Page renderer ─────────────────────────────────────────────────────────
+  const navigateTo = (page) => {
+    setHistory((prev) => [...prev, page]);
+  };
+
+  const goBack = () => {
+    setHistory((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
+  };
+
+  const canGoBack = history.length > 1;
+
   const renderPage = () => {
     switch (activePage) {
       case "overview":
-        return <MembersOverview user={user} onNavigate={setActivePage} />;
+        return <MembersOverview user={user} onNavigate={navigateTo} />;
 
       case "members":
         return (
@@ -37,19 +47,19 @@ const MembersDivisionDashboard = ({ user, onLogout, onNavigateToMain }) => {
         );
 
       case "families":
-        return <FamiliesPage />;
+        return <FamiliesPage onNavigate={navigateTo} />;
 
       case "attendance":
-        return <AttendancePage onNavigate={setActivePage} />;
+        return <AttendancePage onNavigate={navigateTo} />;
 
       case "events":
-        return <EventsPage onNavigate={setActivePage} />;
+        return <EventsPage onNavigate={navigateTo} />;
 
       case "notifications":
-        return <NotificationsPage onNavigate={setActivePage} />;
+        return <NotificationsPage onNavigate={navigateTo} />;
 
       default:
-        return <MembersOverview user={user} onNavigate={setActivePage} />;
+        return <MembersOverview user={user} onNavigate={navigateTo} />;
     }
   };
 
@@ -57,9 +67,11 @@ const MembersDivisionDashboard = ({ user, onLogout, onNavigateToMain }) => {
     <MembersLayout
       user={user}
       activePage={activePage}
-      setActivePage={setActivePage}
+      setActivePage={navigateTo}
       onLogout={onLogout}
       onNavigateToMain={onNavigateToMain}
+      onBack={goBack}
+      canGoBack={canGoBack}
     >
       {renderPage()}
     </MembersLayout>
