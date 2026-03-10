@@ -17,10 +17,12 @@ import { apiFetch } from "../services/apiFetch.js";
 
 const Members = ({ user }) => {
   const [members, setMembers] = useState([]);
+  const [families, setFamilies] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("members");
+  const [yearFilter, setYearFilter] = useState("All");
   
   const [memberModalOpen, setMemberModalOpen] = useState(false);
   const [memberModalData, setMemberModalData] = useState(null);
@@ -35,12 +37,14 @@ const Members = ({ user }) => {
     setLoading(true);
     setError("");
     try {
-      const [membersData, divisionsData] = await Promise.all([
+      const [membersData, divisionsData, familiesData] = await Promise.all([
         apiFetch("/members"),
-        apiFetch("/divisions")
+        apiFetch("/divisions"),
+        apiFetch("/families").catch(() => []), 
       ]);
       setMembers(membersData);
       setDivisions(divisionsData);
+      setFamilies(familiesData || []);
     } catch (err) {
       setError("Failed to load data");
     } finally {
@@ -87,6 +91,19 @@ const Members = ({ user }) => {
       fetchData();
     } catch (err) {
       showToast("Error", err.message, "error");
+    }
+  };
+
+  const handleAutoDistribute = async () => {
+    try {
+      setLoading(true);
+      const res = await apiFetch("/families/auto-distribute", { method: "POST" });
+      showToast("Success", res.message || "Members distributed evenly.", "success");
+      fetchData();
+    } catch (err) {
+      showToast("Error", err.message, "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -148,22 +165,51 @@ const Members = ({ user }) => {
         </div>
       </div>
 
-      <div className="members-hub-tabs">
-        <button
-          className={`members-hub-tab ${activeTab === "members" ? "active" : ""}`}
-          onClick={() => setActiveTab("members")}
-        >
-          <Users size={15} />
-          Directory
-          <span className="count-pill">{members.length}</span>
-        </button>
+      <div className="members-hub-tabs" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+            className={`members-hub-tab ${activeTab === "members" ? "active" : ""}`}
+            onClick={() => setActiveTab("members")}
+            >
+            <Users size={15} />
+            Directory
+            <span className="count-pill">{members.length}</span>
+            </button>
+            <button
+            className={`members-hub-tab ${activeTab === "families" ? "active" : ""}`}
+            onClick={() => setActiveTab("families")}
+            >
+            <UsersRound size={15} />
+            Families
+            <span className="count-pill">{families.length}</span>
+            </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            {activeTab === "families" && (
+                <button className="btn btn-primary" onClick={handleAutoDistribute} style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                   Auto-Distribute Unassigned
+                </button>
+            )}
+            <select 
+                className="form-input" 
+                value={yearFilter} 
+                onChange={(e) => setYearFilter(e.target.value)}
+                style={{ width: '150px' }}
+            >
+                <option value="All">All Years</option>
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+            </select>
+        </div>
       </div>
 
       {activeTab === "members" && (
         <MemberTable
           user={user}
-          members={members}
-          families={divisions}
+          members={members.filter(m => yearFilter === "All" ? true : new Date(m.createdAt).getFullYear().toString() === yearFilter)}
+          families={families}
           onView={setViewMember}
           onEdit={(m) => { setMemberModalData(m); setMemberModalOpen(true); }}
           onDelete={() => {}} 
@@ -171,6 +217,47 @@ const Members = ({ user }) => {
           onReject={handleReject}
           onAssignLeader={handleAssignLeader}
         />
+      )}
+
+      {activeTab === "families" && (
+          <div className="families-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
+              {families.filter(f => yearFilter === "All" ? true : new Date(f.createdAt).getFullYear().toString() === yearFilter).map(family => (
+                  <div key={family.id} className="card" style={{ padding: '1.5rem', background: 'white', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                      <h3 style={{ margin: '0 0 1rem 0' }}>{family.name}</h3>
+                      <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                          Established: {new Date(family.createdAt).getFullYear()}
+                      </p>
+                      <div className="family-roles">
+                          <h4 style={{ fontSize: '0.95rem', color: 'var(--text-light)', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>Parents</h4>
+                          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1rem 0' }}>
+                              {family.members?.filter(m => m.familyRole === 'MOTHER' || m.familyRole === 'FATHER').map(m => (
+                                  <li key={m.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0' }}>
+                                      <span>{m.fullName}</span> 
+                                      <span style={{ fontSize: '0.8rem', background: 'var(--bg-light)', padding: '2px 6px', borderRadius: '4px' }}>{m.familyRole}</span>
+                                  </li>
+                              )) || <li style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>None assigned</li>}
+                          </ul>
+                          
+                          <h4 style={{ fontSize: '0.95rem', color: 'var(--text-light)', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>Children</h4>
+                          <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: '150px', overflowY: 'auto' }}>
+                              {family.members?.filter(m => m.familyRole === 'CHILD').map(m => (
+                                  <li key={m.id} style={{ padding: '0.25rem 0', display: 'flex', justifyContent: 'space-between' }}>
+                                      <span>{m.fullName}</span>
+                                      <span style={{ fontSize: '0.8rem', color: 'var(--text-light)' }}>{m.gender || 'Unknown'}</span>
+                                  </li>
+                              )) || <li style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>No children</li>}
+                          </ul>
+                      </div>
+                  </div>
+              ))}
+              {families.length === 0 && (
+                  <div style={{ padding: '3rem', textAlign: 'center', background: 'white', border: '1px dashed var(--border)', borderRadius: '12px', gridColumn: '1 / -1' }}>
+                      <UsersRound size={48} color="var(--text-light)" style={{ marginBottom: '1rem' }} />
+                      <h3>No Families Found</h3>
+                      <p style={{ color: 'var(--text-light)' }}>Create families in the backend to start distributing members.</p>
+                  </div>
+              )}
+          </div>
       )}
 
       {memberModalOpen && (
@@ -213,8 +300,16 @@ const Members = ({ user }) => {
                   <strong>{viewMember.phone}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ color: 'var(--text-light)' }}>Division</span>
-                  <strong>{divisions.find(d => d.id === viewMember.divisionId)?.name || 'None'}</strong>
+                  <span style={{ color: 'var(--text-light)' }}>Gender</span>
+                  <strong>{viewMember.gender || 'Not specified'}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ color: 'var(--text-light)' }}>Family</span>
+                  {viewMember.familyId ? (
+                      <strong>{families.find(f => f.id === viewMember.familyId)?.name || 'Unknown Family'}</strong>
+                  ) : (
+                      <strong style={{ color: '#dc2626', background: '#fef2f2', padding: '2px 8px', borderRadius: '12px', fontSize: '0.85rem' }}>Unassigned</strong>
+                  )}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
                   <span style={{ color: 'var(--text-light)' }}>Role</span>

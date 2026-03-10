@@ -36,7 +36,7 @@ export async function getMemberAttendanceSummary(memberId: string) {
   });
 
   const total = records.length;
-  const present = records.filter((r) => r.status === "PRESENT").length;
+  const present = records.filter((r: { status: string }) => r.status === "PRESENT").length;
   const participationPercentage = total === 0 ? 0 : (present / total) * 100;
 
   return {

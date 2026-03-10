@@ -5,8 +5,8 @@ import {
   deleteDivision,
   listDivisions,
   updateDivision,
-} from "../services/divisionService.js";
-import { assignDivisionLeader } from "../services/memberService.js";
+} from "../services/divisionService";
+import { assignDivisionLeader } from "../services/memberService";
 
 const divisionCreateSchema = z.object({
   name: z.string().min(1),
@@ -65,7 +65,10 @@ export async function updateDivisionController(
       .status(400)
       .json({ message: "Invalid input", errors: parse.error.flatten() });
   }
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   try {
     const updated = await updateDivision(id, parse.data);
     return res.json(updated);
@@ -79,7 +82,10 @@ export async function deleteDivisionController(
   res: Response,
   next: NextFunction,
 ) {
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   try {
     await deleteDivision(id);
     return res.status(204).send();
@@ -100,7 +106,10 @@ export async function setDivisionLeaderController(
   res: Response,
   next: NextFunction,
 ) {
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   const parse = setLeaderSchema.safeParse(req.body);
   if (!parse.success) {
     return res

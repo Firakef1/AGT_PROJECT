@@ -21,12 +21,17 @@ import {
   Info
 } from 'lucide-react'
 
+import { apiFetch } from '../services/apiFetch'
+
 const Reports = () => {
   const [showModal, setShowModal] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [progress, setProgress] = useState(0)
   const [selectedFile, setSelectedFile] = useState(null)
   const [generationComplete, setGenerationComplete] = useState(false)
+  const [recentReports, setRecentReports] = useState([])
+  const [stats, setStats] = useState({ members: 0, divisions: 0 })
+  const [generatedFileName, setGeneratedFileName] = useState('')
   const [reportData, setReportData] = useState({
     type: 'Financial Summary',
     range: 'May 2024'
@@ -55,11 +60,24 @@ const Reports = () => {
     { name: 'Inventory Report', description: 'Current inventory status and usage patterns', icon: <FilePlus size={20} />, status: 'Updated 5h ago', color: '#7c3aed' },
   ]
 
-  const recentReports = [
-    { id: 'RPT-001', name: 'Q1 Financial Summary', date: 'May 12, 2024', size: '2.4 MB', type: 'PDF' },
-    { id: 'RPT-002', name: 'Annual Member Audit', date: 'May 10, 2024', size: '1.8 MB', type: 'XLSX' },
-    { id: 'RPT-003', name: 'Division Activity Log', date: 'May 08, 2024', size: '850 KB', type: 'PDF' },
-  ]
+  const fetchReportsData = async () => {
+    try {
+      const [reportsData, dashData, divData] = await Promise.all([
+        apiFetch('/reports'),
+        apiFetch('/dashboard/summary'),
+        apiFetch('/divisions')
+      ])
+      setRecentReports(reportsData)
+      setStats({ members: dashData.members, divisions: divData.length })
+    } catch (error) {
+      console.error('Failed to fetch reports data', error)
+      showToast('Error', 'Failed to load report history', 'error')
+    }
+  }
+
+  useEffect(() => {
+    fetchReportsData()
+  }, [])
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -67,11 +85,29 @@ const Reports = () => {
     }
   }
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!selectedFile) {
       showToast('Validation Error', 'Please select a file to process', 'error')
       return
     }
+
+    const newReportName = `${reportData.type.replace(/\s+/g, '_')}_${new Date().getTime().toString().slice(-4)}.pdf`
+    setGeneratedFileName(newReportName)
+    
+    try {
+      await apiFetch('/reports', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: newReportName,
+          type: 'Analysis',
+          format: 'PDF'
+        })
+      })
+      await fetchReportsData()
+    } catch (e) {
+      console.error('Failed to log report', e)
+    }
+
     setIsGenerating(true)
     setProgress(0)
     setGenerationComplete(false)
@@ -135,21 +171,21 @@ const Reports = () => {
         <div className="fin-stat-card">
           <p className="page-stat-label">Total Reports</p>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
-            <h2 className="page-stat-value">1,280</h2>
-            <span className="dash-stat-change positive">+12%</span>
+            <h2 className="page-stat-value">{recentReports.length}</h2>
+            <span className="dash-stat-change positive">Tracked</span>
           </div>
         </div>
         <div className="fin-stat-card">
-          <p className="page-stat-label">Downloads</p>
+          <p className="page-stat-label">Total Members</p>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
-            <h2 className="page-stat-value">842</h2>
-            <span className="dash-stat-change positive">+5.4%</span>
+            <h2 className="page-stat-value">{stats.members.toLocaleString()}</h2>
+            <span className="dash-stat-change neutral">In DB</span>
           </div>
         </div>
         <div className="fin-stat-card">
-          <p className="page-stat-label">Data Accuracy</p>
+          <p className="page-stat-label">Divisions</p>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
-            <h2 className="page-stat-value">99.8%</h2>
+            <h2 className="page-stat-value">{stats.divisions}</h2>
             <CheckCircle size={18} color="#16a34a" />
           </div>
         </div>
@@ -205,20 +241,24 @@ const Reports = () => {
             <ChevronRight size={16} />
           </div>
           <div className="recent-reports-list" style={{ marginTop: '1rem' }}>
-            {recentReports.map((rpt, idx) => (
-              <div key={idx} style={{ padding: '1rem 0', borderBottom: idx !== recentReports.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '36px', height: '36px', background: 'var(--gray-100)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-                  <FileText size={18} />
+            {recentReports.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', padding: '1rem', textAlign: 'center' }}>No recent exports found.</p>
+            ) : (
+              recentReports.slice(0, 5).map((rpt, idx) => (
+                <div key={idx} style={{ padding: '1rem 0', borderBottom: idx !== Math.min(recentReports.length, 5) - 1 ? '1px solid var(--border)' : 'none', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '36px', height: '36px', background: 'var(--gray-100)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                    <FileText size={18} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 600 }}>{rpt.name}</h4>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{rpt.date} • {rpt.size}</span>
+                  </div>
+                  <button className="btn-icon" onClick={() => handleExport(rpt.name)}>
+                    <Download size={16} color="var(--accent)" />
+                  </button>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '0.85rem', fontWeight: 600 }}>{rpt.name}</h4>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{rpt.date} • {rpt.size}</span>
-                </div>
-                <button className="btn-icon">
-                  <Download size={16} color="var(--accent)" />
-                </button>
-              </div>
-            ))}
+              ))
+            )}
           </div>
           <button className="btn-view-detail" style={{ marginTop: '1.5rem', width: '100%' }} onClick={() => setShowExportsModal(true)}>View Full Export History</button>
         </div>
@@ -243,11 +283,11 @@ const Reports = () => {
                 <>
                   <div className="mem-form-group">
                     <label className="mem-form-label">Report Type</label>
-                    <select className="mem-form-select">
-                      <option>Quarterly Performance</option>
-                      <option>Member Retention Audit</option>
-                      <option>Expense Breakdown</option>
-                      <option>Custom Query</option>
+                    <select className="mem-form-select" value={reportData.type} onChange={e => setReportData({...reportData, type: e.target.value})}>
+                      <option value="Quarterly Performance">Quarterly Performance</option>
+                      <option value="Member Retention Audit">Member Retention Audit</option>
+                      <option value="Expense Breakdown">Expense Breakdown</option>
+                      <option value="Custom Query">Custom Query</option>
                     </select>
                   </div>
 
@@ -313,8 +353,8 @@ const Reports = () => {
                       <FileText color="var(--accent)" />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>Custom_Analysis_Report.pdf</p>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Generated today • 4.2 MB</p>
+                      <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>{generatedFileName || 'Custom_Analysis_Report.pdf'}</p>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Generated today • ~2.0 MB</p>
                     </div>
                     <button className="btn-icon" style={{ background: 'var(--accent)', color: '#fff' }}>
                       <Download size={18} />
@@ -475,7 +515,7 @@ const Reports = () => {
                           <td>{rpt.date}</td>
                           <td>{rpt.size}</td>
                           <td style={{ textAlign: 'right' }}>
-                            <button className="btn-icon" style={{ color: 'var(--accent)' }}>
+                            <button className="btn-icon" style={{ color: 'var(--accent)' }} onClick={() => handleExport(rpt.name)}>
                               <Download size={18} />
                             </button>
                           </td>

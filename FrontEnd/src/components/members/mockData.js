@@ -10,9 +10,17 @@ export const avatarPalette = [
   { color: "#92400e", bg: "#fef3e2" },
 ];
 
-/** Returns { color, bg } for a given member id */
-export const getAvatarStyle = (id) =>
-  avatarPalette[(id - 1) % avatarPalette.length];
+export const getAvatarStyle = (id) => {
+  if (typeof id === 'string') {
+    // Simple hash for string IDs (UUIDs)
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return avatarPalette[Math.abs(hash) % avatarPalette.length];
+  }
+  return avatarPalette[(id - 1) % avatarPalette.length];
+};
 
 /** Derives two-letter initials from a full name */
 export const getInitials = (name) =>
@@ -38,23 +46,35 @@ export const ALL_ROLES = Object.keys(roleColors);
 /** All selectable statuses */
 export const ALL_STATUSES = ["PENDING", "APPROVED", "REJECTED"];
 
-/** All selectable genders */
-export const ALL_GENDERS = ["Male", "Female", "Other"];
+/** All selectable genders (value for API, label for display) */
+export const ALL_GENDERS = [
+  { value: "MALE", label: "Male" },
+  { value: "FEMALE", label: "Female" },
+];
+
+/** Language options for member forms (checkboxes: can select one or both) */
+export const LANGUAGE_OPTIONS = [
+  { value: "AFAN_OROMO", label: "Afan Oromo" },
+  { value: "AMHARIC", label: "Amharic" },
+];
 
 // ── Blank form template for MemberFormModal ─────────────────────────────────
 export const EMPTY_MEMBER_FORM = {
   fullName:     "",
   studentId:    "",
-  gender:       "Male",
+  gender:       "MALE",
   phone:        "",
   email:        "",
   birthday:     "",
   joinDate:     "",
   address:      "",
-  divisionId:   null,
+  divisionId:   null, // using divisionId for familyId in frontend due to legacy mapping, need to be careful
+  familyRole:   "CHILD",
   role:         "MEMBER",
   status:       "PENDING",
   profileImage: null,
+  section:      null,
+  language:     null,
 };
 
 // ── Blank form template for FamilyModal ─────────────────────────────────────

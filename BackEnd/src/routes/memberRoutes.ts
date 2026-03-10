@@ -8,8 +8,8 @@ import {
   updateMemberController,
   assignDivisionLeaderController,
   assignMemberToDivisionController,
-} from "../controllers/memberController.js";
-import { authenticate, authorize } from "../middleware/authMiddleware.js";
+} from "../controllers/memberController";
+import { authenticate, authorize } from "../middleware/authMiddleware";
 
 const router = Router();
 

@@ -1,20 +1,17 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { env } from "../config/env.js";
-import { prisma } from "../prisma/client.js";
+import { env } from "../config/env";
+import { prisma } from "../prisma/client";
 
 export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-  };
+  user?: { id: string; role: string };
 }
 
 export function authenticate(
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction,
-) {
+): void | Response {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -26,7 +23,7 @@ export function authenticate(
       userId: string;
       role: string;
     };
-    req.user = { id: payload.userId, role: payload.role };
+    (req as AuthRequest).user = { id: payload.userId, role: payload.role };
     return next();
   } catch {
     return res.status(401).json({ message: "Invalid token" });
@@ -34,17 +31,18 @@ export function authenticate(
 }
 
 export function authorize(roles: string[]) {
-  return async (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void | Response> => {
+    const authReq = req as AuthRequest;
+    if (!authReq.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(authReq.user.role)) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
+      where: { id: authReq.user.id },
       select: { id: true },
     });
 

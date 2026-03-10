@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { getFinanceSummary, recordTransaction, listTransactions } from "../services/financeService.js";
-import { sendEmail } from "../utils/email.js";
+import { getFinanceSummary, recordTransaction, listTransactions } from "../services/financeService";
+import { sendEmail } from "../utils/email";
 
 const transactionSchema = z.object({
   type: z.enum(["INCOME", "EXPENSE"]),

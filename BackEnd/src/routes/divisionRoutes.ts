@@ -5,8 +5,8 @@ import {
   listDivisionsController,
   updateDivisionController,
   setDivisionLeaderController,
-} from "../controllers/divisionController.js";
-import { authenticate, authorize } from "../middleware/authMiddleware.js";
+} from "../controllers/divisionController";
+import { authenticate, authorize } from "../middleware/authMiddleware";
 
 const router = Router();
 

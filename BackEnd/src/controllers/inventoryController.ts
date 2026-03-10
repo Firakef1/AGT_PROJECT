@@ -41,13 +41,19 @@ export async function updateInventoryItemController(req: Request, res: Response)
       .json({ message: "Invalid input", errors: parse.error.flatten() });
   }
 
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   const item = await updateInventoryItem(id, parse.data);
   return res.json(item);
 }
 
 export async function deleteInventoryItemController(req: Request, res: Response) {
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   await deleteInventoryItem(id);
   return res.status(204).send();
 }

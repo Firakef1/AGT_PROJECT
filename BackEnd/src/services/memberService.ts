@@ -1,8 +1,8 @@
-import { prisma } from "../prisma/client.js";
+import { prisma } from "../prisma/client";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { AppError } from "../middleware/errorHandler.js";
-import { sendApprovalEmail, sendRejectionEmail } from "./emailService.js";
+import { AppError } from "../middleware/errorHandler";
+import { sendApprovalEmail, sendRejectionEmail } from "./emailService";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -22,12 +22,16 @@ export async function registerMember(data: {
   fullName: string;
   email: string;
   phone?: string | null;
+  gender: string;
   divisionId?: string | null;
+  section?: number | null;
+  language?: "AFAN_OROMO" | "AMHARIC" | "BOTH" | null;
 }) {
-  const prismaData: any = {
+  const prismaData: Record<string, unknown> = {
     studentId: data.studentId,
     fullName: data.fullName,
     email: data.email,
+    gender: data.gender.trim(),
     status: "PENDING",
   };
 
@@ -40,7 +44,14 @@ export async function registerMember(data: {
     prismaData.divisionJoinedAt = new Date();
   }
 
-  return prisma.member.create({ data: prismaData });
+  if (data.section != null && Number.isInteger(data.section)) {
+    prismaData.section = data.section;
+  }
+  if (data.language === "AFAN_OROMO" || data.language === "AMHARIC" || data.language === "BOTH") {
+    prismaData.language = data.language;
+  }
+
+  return prisma.member.create({ data: prismaData as any });
 }
 
 export async function listMembers(filter?: {
@@ -224,7 +235,10 @@ export async function updateMember(
     fullName: string;
     email: string;
     phone?: string | null;
+    gender?: string | null;
     divisionId?: string | null;
+    section?: number | null;
+    language?: "AFAN_OROMO" | "AMHARIC" | "BOTH" | null;
   }>,
 ) {
   const member = await prisma.member.findUnique({ where: { id } });

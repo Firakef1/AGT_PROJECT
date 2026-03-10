@@ -32,7 +32,7 @@ const router = Router();
  *                 type: string
  *               role:
  *                 type: string
- *                 enum: [ADMIN, DIVISION_HEAD, MEMBER]
+ *                 enum: [ADMIN, MEMBERS_MANAGER, DIVISION_HEAD, MEMBER]
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -107,7 +107,7 @@ router.get(
     passport.authenticate(
       "google",
       { session: false },
-      (err, result: any) => {
+      (err: unknown, result: { user: unknown; token: string } | undefined) => {
         if (err || !result) {
           return res.status(401).json({ message: "Google authentication failed" });
         }

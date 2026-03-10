@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { dashboardSummaryController } from "../controllers/dashboardController";
+import { dashboardSummaryController, dashboardActivitiesController } from "../controllers/dashboardController";
 import { authenticate } from "../middleware/authMiddleware";
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate as any);
 
 /**
  * @swagger
@@ -19,6 +19,8 @@ router.use(authenticate);
  *         description: Dashboard summary including counts and finance totals
  */
 router.get("/summary", dashboardSummaryController);
+router.get("/", dashboardSummaryController);
+router.get("/activities", dashboardActivitiesController);
 
 export default router;
 

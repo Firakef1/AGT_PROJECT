@@ -128,6 +128,8 @@ const MemberTable = ({ user, members, families, onView, onEdit, onDelete, onAppr
   const startNum = filtered.length === 0 ? 0 : (safePage - 1) * ROWS_PER_PAGE + 1;
   const endNum = Math.min(safePage * ROWS_PER_PAGE, filtered.length);
 
+  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
+
   const getDivisionName = (divisionId) => {
     if (!divisionId) return null;
     const f = families.find((f) => f.id === divisionId);
@@ -216,6 +218,12 @@ const MemberTable = ({ user, members, families, onView, onEdit, onDelete, onAppr
                 onClick={() => setFamilyFilter("All")}
               >
                 All Divisions
+              </button>
+              <button
+                className={`mem-filter-option ${familyFilter === "Unassigned" ? "selected" : ""}`}
+                onClick={() => setFamilyFilter("Unassigned")}
+              >
+                Unassigned
               </button>
               {families.map((f) => (
                 <button

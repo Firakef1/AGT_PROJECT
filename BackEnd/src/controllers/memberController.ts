@@ -9,7 +9,7 @@ import {
   deleteMember,
   assignDivisionLeader,
   assignMemberToDivision,
-} from "../services/memberService.js";
+} from "../services/memberService";
 
 // ── Validation schemas ─────────────────────────────────────────────────────────
 
@@ -18,14 +18,20 @@ const memberRegisterSchema = z.object({
   fullName: z.string().min(1),
   email: z.string().email(),
   phone: z.string().optional().nullable().or(z.literal("")),
+  gender: z.enum(["MALE", "FEMALE"], { required_error: "Gender is required" }),
   divisionId: z.string().uuid().optional().nullable().or(z.literal("")),
+  section: z.number().int().optional().nullable(),
+  language: z.enum(["AFAN_OROMO", "AMHARIC", "BOTH"], { required_error: "At least one language is required" }),
 });
 
 const memberUpdateSchema = z.object({
   fullName: z.string().min(1).optional(),
   email: z.string().email().optional(),
   phone: z.string().optional().nullable().or(z.literal("")),
+  gender: z.enum(["MALE", "FEMALE"]).optional().nullable(),
   divisionId: z.string().uuid().optional().nullable().or(z.literal("")),
+  section: z.number().int().optional().nullable(),
+  language: z.enum(["AFAN_OROMO", "AMHARIC", "BOTH"]).optional().nullable(),
 });
 
 const assignLeaderSchema = z.object({
@@ -80,7 +86,10 @@ export async function approveMemberController(
   res: Response,
   next: NextFunction,
 ) {
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   try {
     const updated = await approveMember(id);
     return res.json(updated);
@@ -94,7 +103,10 @@ export async function rejectMemberController(
   res: Response,
   next: NextFunction,
 ) {
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   try {
     const updated = await rejectMember(id);
     return res.json(updated);
@@ -108,7 +120,10 @@ export async function assignDivisionLeaderController(
   res: Response,
   next: NextFunction,
 ) {
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   const parse = assignLeaderSchema.safeParse(req.body);
   if (!parse.success) {
     return res
@@ -128,7 +143,10 @@ export async function assignMemberToDivisionController(
   res: Response,
   next: NextFunction,
 ) {
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   const parse = assignDivisionSchema.safeParse(req.body);
   if (!parse.success) {
     return res
@@ -154,7 +172,10 @@ export async function updateMemberController(
       .status(400)
       .json({ message: "Invalid input", errors: parse.error.flatten() });
   }
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   try {
     const updated = await updateMember(id, parse.data);
     return res.json(updated);
@@ -168,7 +189,10 @@ export async function deleteMemberController(
   res: Response,
   next: NextFunction,
 ) {
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   try {
     await deleteMember(id);
     return res.status(204).send();

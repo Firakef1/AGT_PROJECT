@@ -20,22 +20,19 @@ import "../members-dashboard.css";
  *   onNavigateToMain {function} – returns the user to the main Administrative
  *                                 portal (sets App.jsx activePage → "dashboard")
  */
-const MembersDivisionDashboard = ({ onLogout, onNavigateToMain }) => {
+const MembersDivisionDashboard = ({ user, onLogout, onNavigateToMain }) => {
   const [activePage, setActivePage] = useState("overview");
 
   // ── Page renderer ─────────────────────────────────────────────────────────
   const renderPage = () => {
     switch (activePage) {
       case "overview":
-        return <MembersOverview onNavigate={setActivePage} />;
+        return <MembersOverview user={user} onNavigate={setActivePage} />;
 
-      // Embed the existing Members management component as-is.
-      // It already ships with its own Members + Families tab navigation,
-      // search, add/edit/delete, and CSV export — nothing is rewritten.
       case "members":
         return (
           <div className="members-page-host">
-            <Members />
+            <Members user={user} />
           </div>
         );
 
@@ -52,12 +49,13 @@ const MembersDivisionDashboard = ({ onLogout, onNavigateToMain }) => {
         return <NotificationsPage onNavigate={setActivePage} />;
 
       default:
-        return <MembersOverview onNavigate={setActivePage} />;
+        return <MembersOverview user={user} onNavigate={setActivePage} />;
     }
   };
 
   return (
     <MembersLayout
+      user={user}
       activePage={activePage}
       setActivePage={setActivePage}
       onLogout={onLogout}

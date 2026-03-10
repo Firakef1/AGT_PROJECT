@@ -74,7 +74,7 @@ const INITIAL_NOTIFS = [
  *   activePage {string}   – current page key (used to derive the title)
  *   onLogout   {function} – called when the user signs out
  */
-const MembersTopbar = ({ activePage, onLogout }) => {
+const MembersTopbar = ({ user, activePage, onLogout }) => {
   const [notifs, setNotifs]           = useState(INITIAL_NOTIFS);
   const [notifOpen, setNotifOpen]     = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -257,8 +257,8 @@ const MembersTopbar = ({ activePage, onLogout }) => {
               <User size={15} />
             </div>
             <div className="members-profile-info">
-              <span className="members-profile-name">Division Leader</span>
-              <span className="members-profile-role">Members Division</span>
+              <span className="members-profile-name">{user?.fullName || "Division Leader"}</span>
+              <span className="members-profile-role">{user?.role?.replace('_', ' ') || "Members Division"}</span>
             </div>
             <ChevronDown
               size={13}
@@ -275,8 +275,8 @@ const MembersTopbar = ({ activePage, onLogout }) => {
                   <User size={18} />
                 </div>
                 <div>
-                  <p className="members-dropdown-name">Division Leader</p>
-                  <p className="members-dropdown-role">Members Division</p>
+                  <p className="members-dropdown-name">{user?.fullName || "Division Leader"}</p>
+                  <p className="members-dropdown-role">{user?.role?.replace('_', ' ') || "Members Division"}</p>
                 </div>
               </div>
 

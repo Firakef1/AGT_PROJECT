@@ -16,7 +16,9 @@ import {
   CheckCircle2,
   GitCommitHorizontal,
   CalendarDays,
+  X
 } from "lucide-react";
+import { apiFetch } from "../services/apiFetch";
 
 // ── Section metadata: icon + accent colour ────────────────────────────────────
 const SECTION_META = [
@@ -149,6 +151,58 @@ const settingsSections = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Settings = () => {
+  const [settings, setSettings] = React.useState([])
+  const [showModal, setShowModal] = React.useState(false)
+  const [activeItem, setActiveItem] = React.useState(null)
+  const [editValue, setEditValue] = React.useState('')
+  const [isSaving, setIsSaving] = React.useState(false)
+  const [toast, setToast] = React.useState({ show: false, message: '', type: 'success' })
+
+  const loadSettings = async () => {
+    try {
+      const data = await apiFetch('/settings')
+      setSettings(data)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  React.useEffect(() => {
+    loadSettings()
+  }, [])
+
+  const handleConfigure = (item) => {
+    const existing = settings.find(s => s.key === item.label.replace(/\s+/g, '_'))
+    setActiveItem(item)
+    setEditValue(existing ? existing.value : '')
+    setShowModal(true)
+  }
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    const key = activeItem.label.replace(/\s+/g, '_')
+    try {
+      await apiFetch('/settings', {
+        method: 'POST',
+        body: JSON.stringify({
+          key,
+          value: editValue,
+          description: activeItem.description
+        })
+      })
+      await loadSettings()
+      
+      setToast({ show: true, message: 'Settings saved successfully', type: 'success' })
+      setTimeout(() => setToast(prev => ({...prev, show: false})), 3000)
+      setShowModal(false)
+    } catch (err) {
+      setToast({ show: true, message: 'Failed to save settings', type: 'error' })
+      setTimeout(() => setToast(prev => ({...prev, show: false})), 3000)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="page-v2 settings-page">
       {/* ── Page header ── */}
@@ -204,7 +258,7 @@ const Settings = () => {
                         <p>{item.description}</p>
                       </div>
 
-                      <button className="btn-outline">Configure</button>
+                      <button className="btn-outline" onClick={() => handleConfigure(item)}>Configure</button>
                     </div>
                   );
                 })}
@@ -291,6 +345,57 @@ const Settings = () => {
           </div>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      {showModal && activeItem && (
+        <div className="mem-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="mem-modal" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+            <div className="mem-modal-header">
+              <div>
+                <h2 className="mem-modal-title">Configure {activeItem.label}</h2>
+                <p className="mem-modal-subtitle">{activeItem.description}</p>
+              </div>
+              <button className="mem-modal-close" onClick={() => setShowModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="mem-modal-body">
+              <div className="mem-form-group">
+                <label className="mem-form-label">Configuration Value</label>
+                <textarea 
+                  className="mem-form-input" 
+                  rows="4" 
+                  value={editValue} 
+                  onChange={e => setEditValue(e.target.value)}
+                  placeholder="Enter configuration details in JSON or plain text..."
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+            </div>
+            <div className="mem-modal-footer">
+              <button className="btn-icon-text" style={{ background: 'var(--gray-100)', color: 'var(--text-primary)' }} onClick={() => setShowModal(false)} disabled={isSaving}>Cancel</button>
+              <button className="btn-accent" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Toast Notification */}
+      {toast.show && (
+        <div className="toast-container">
+          <div className={`custom-toast toast-${toast.type}`}>
+            <div className="toast-icon">
+              {toast.type === 'success' ? <CheckCircle2 size={20} color="var(--green)" /> : <X size={20} color="var(--red)" />}
+            </div>
+            <div className="toast-content">
+              <div className="toast-title">{toast.type === 'success' ? 'Success' : 'Error'}</div>
+              <div className="toast-message">{toast.message}</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

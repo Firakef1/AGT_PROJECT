@@ -9,32 +9,15 @@ const RegistrationModal = ({ isOpen, onClose }) => {
         fullName: '',
         email: '',
         phone: '',
-        divisionId: ''
+        gender: '',
+        section: '',
+        languageAfanOromo: false,
+        languageAmharic: false,
     });
 
-    const [divisions, setDivisions] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
-
-    useEffect(() => {
-        if (isOpen) {
-            fetchDivisions();
-        }
-    }, [isOpen]);
-
-    const fetchDivisions = async () => {
-        setIsLoading(true);
-        try {
-            const data = await apiFetch('/divisions');
-            setDivisions(data);
-        } catch (err) {
-            console.error('Failed to fetch divisions:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     if (!isOpen) return null;
 
@@ -43,20 +26,61 @@ const RegistrationModal = ({ isOpen, onClose }) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleLanguageCheck = (lang) => {
+        if (lang === 'AFAN_OROMO') {
+            setFormData(prev => ({ ...prev, languageAfanOromo: !prev.languageAfanOromo }));
+        } else {
+            setFormData(prev => ({ ...prev, languageAmharic: !prev.languageAmharic }));
+        }
+    };
+
+    const handleGenderChange = (value) => {
+        setFormData(prev => ({ ...prev, gender: value }));
+    };
+
+    // Derive language value for API: BOTH, AFAN_OROMO, or AMHARIC (at least one required)
+    const getLanguageValue = () => {
+        const { languageAfanOromo, languageAmharic } = formData;
+        if (languageAfanOromo && languageAmharic) return 'BOTH';
+        if (languageAfanOromo) return 'AFAN_OROMO';
+        if (languageAmharic) return 'AMHARIC';
+        return null;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const languageValue = getLanguageValue();
+        if (!languageValue) {
+            setError('Please select at least one language.');
+            return;
+        }
+        if (!formData.gender) {
+            setError('Please select your gender.');
+            return;
+        }
         setIsSubmitting(true);
         setError('');
         try {
+            const sectionNum = formData.section === '' ? undefined : parseInt(formData.section, 10);
+            const payload = {
+                studentId: formData.studentId,
+                fullName: formData.fullName,
+                email: formData.email,
+                phone: formData.phone || undefined,
+                gender: formData.gender,
+                divisionId: null,
+                language: languageValue,
+                ...(Number.isInteger(sectionNum) && { section: sectionNum }),
+            };
             await apiFetch('/members/register', {
                 method: 'POST',
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             });
             setSubmitted(true);
             setTimeout(() => {
                 setSubmitted(false);
                 onClose();
-                setFormData({ studentId: '', fullName: '', email: '', phone: '', divisionId: '' });
+                setFormData({ studentId: '', fullName: '', email: '', phone: '', gender: '', section: '', languageAfanOromo: false, languageAmharic: false });
             }, 6000);
         } catch (err) {
             setError(err.message || 'Registration failed. Please try again.');
@@ -82,7 +106,7 @@ const RegistrationModal = ({ isOpen, onClose }) => {
                         <div className="success-icon" style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
                         <h3 className="success-title">Registration Submitted!</h3>
                         <p className="success-message">
-                            Your request has been received. Your membership is now <strong>Pending Approval</strong> by the Admin or Members Management team.
+                            Your request has been received. Your membership is now <strong>Pending Approval</strong>.
                         </p>
                         <p className="success-sub">You will receive an email once your request is processed.</p>
                     </div>
@@ -143,25 +167,63 @@ const RegistrationModal = ({ isOpen, onClose }) => {
                                 />
                             </div>
 
-                            <div className="form-group full-width">
-                                <label htmlFor="divisionId">Division of Interest *</label>
-                                <select
-                                    id="divisionId"
-                                    name="divisionId"
-                                    value={formData.divisionId}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={isLoading}
-                                >
-                                    <option value="" disabled>{isLoading ? 'Loading...' : 'Select a division'}</option>
-                                    {divisions.map(div => (
-                                        <option key={div.id} value={div.id}>{div.name}</option>
+                            <div className="form-group">
+                                <label>Gender *</label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '0.5rem' }}>
+                                    {['Male', 'Female'].map((opt) => (
+                                        <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                            <input
+                                                type="radio"
+                                                name="gender"
+                                                value={opt.toUpperCase()}
+                                                checked={formData.gender === opt.toUpperCase()}
+                                                onChange={() => handleGenderChange(opt.toUpperCase())}
+                                                required
+                                            />
+                                            {opt}
+                                        </label>
                                     ))}
-                                </select>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="section">Section</label>
+                                <input
+                                    type="number"
+                                    id="section"
+                                    name="section"
+                                    min={1}
+                                    value={formData.section}
+                                    onChange={handleChange}
+                                    placeholder="e.g. 1"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Language *</label>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-light)', marginBottom: '0.5rem' }}>Select at least one (you can check both).</p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '0.5rem' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.languageAfanOromo}
+                                            onChange={() => handleLanguageCheck('AFAN_OROMO')}
+                                        />
+                                        Afan Oromo
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.languageAmharic}
+                                            onChange={() => handleLanguageCheck('AMHARIC')}
+                                        />
+                                        Amharic
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="modal-actions">
+                        <div className="modal-actions" style={{ marginTop: '2rem' }}>
                             <button type="button" className="btn-cancel" onClick={onClose} disabled={isSubmitting}>Cancel</button>
                             <button type="submit" className="btn-submit" disabled={isSubmitting}>
                                 {isSubmitting ? (

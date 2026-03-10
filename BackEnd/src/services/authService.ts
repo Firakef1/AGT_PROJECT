@@ -7,7 +7,7 @@ export async function registerUser(params: {
   email: string;
   password: string;
   fullName: string;
-  role?: "ADMIN" | "DIVISION_HEAD" | "MEMBER";
+  role?: "ADMIN" | "DIVISION_HEAD" | "MEMBER" | "MEMBERS_MANAGER";
 }) {
   const hashed = await bcrypt.hash(params.password, 10);
   const user = await prisma.user.create({
@@ -36,6 +36,10 @@ export async function loginUser(params: {
   });
 
   if (!user) {
+    return null;
+  }
+
+  if (user.password == null || user.password === "") {
     return null;
   }
 

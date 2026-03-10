@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
-import { prisma } from "../prisma/client.js";
-import { env } from "../config/env.js";
+import { prisma } from "../prisma/client";
+import { env } from "../config/env";
 
 export async function ensureInitialAdmin() {
   const existingAdmin = await prisma.user.findFirst({

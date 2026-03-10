@@ -41,166 +41,45 @@ const yearlyData = [
   { name: "2026", income: 5420000, expenses: 3200000 },
 ];
 
-// Preview list shown on the dashboard card (latest 4)
-const recentActivities = [
-  {
-    icon: UserPlus,
-    iconBg: "#e8f0fe",
-    iconColor: "#1a56db",
-    title: "New Member Joined",
-    description: "Abebe Kebede joined Gospel Division.",
-    time: "2 HOURS AGO",
-  },
-  {
-    icon: ClipboardCheck,
-    iconBg: "#e8f5e9",
-    iconColor: "#16a34a",
-    title: "Budget Approved",
-    description: "Monthly budget for Media team finalized.",
-    time: "YESTERDAY",
-  },
-  {
-    icon: AlertTriangle,
-    iconBg: "#fff3cd",
-    iconColor: "#d97706",
-    title: "Low Inventory Alert",
-    description: "Sound system cables need replacement.",
-    time: "3 DAYS AGO",
-  },
-  {
-    icon: FileBarChart,
-    iconBg: "#f3e8ff",
-    iconColor: "#7c3aed",
-    title: "Quarterly Report Generated",
-    description: "Q3 management report is ready for review.",
-    time: "4 DAYS AGO",
-  },
-];
-
-// Full activity log shown in the "View All" modal
-const allActivities = [
-  {
-    icon: UserPlus,
-    iconBg: "#e8f0fe",
-    iconColor: "#1a56db",
-    title: "New Member Joined",
-    description: "Abebe Kebede joined Gospel Division.",
-    time: "2 HOURS AGO",
-  },
-  {
-    icon: ClipboardCheck,
-    iconBg: "#e8f5e9",
-    iconColor: "#16a34a",
-    title: "Budget Approved",
-    description: "Monthly budget for Media team finalized.",
-    time: "YESTERDAY",
-  },
-  {
-    icon: AlertTriangle,
-    iconBg: "#fff3cd",
-    iconColor: "#d97706",
-    title: "Low Inventory Alert",
-    description: "Sound system cables need replacement.",
-    time: "3 DAYS AGO",
-  },
-  {
-    icon: FileBarChart,
-    iconBg: "#f3e8ff",
-    iconColor: "#7c3aed",
-    title: "Quarterly Report Generated",
-    description: "Q3 management report is ready for review.",
-    time: "4 DAYS AGO",
-  },
-  {
-    icon: Users,
-    iconBg: "#e8f0fe",
-    iconColor: "#1a56db",
-    title: "Division Meeting Scheduled",
-    description: "Youth Division quarterly meeting set for Friday.",
-    time: "5 DAYS AGO",
-  },
-  {
-    icon: Wallet,
-    iconBg: "#e8f5e9",
-    iconColor: "#16a34a",
-    title: "Expense Submitted",
-    description: "Media team submitted 12,000 ETB expense report.",
-    time: "6 DAYS AGO",
-  },
-  {
-    icon: PackageCheck,
-    iconBg: "#fce4ec",
-    iconColor: "#dc2626",
-    title: "Inventory Updated",
-    description: "Projector set added to inventory by store keeper.",
-    time: "1 WEEK AGO",
-  },
-  {
-    icon: UserPlus,
-    iconBg: "#e8f0fe",
-    iconColor: "#1a56db",
-    title: "New Member Joined",
-    description: "Tigist Alemu joined Media Division.",
-    time: "1 WEEK AGO",
-  },
-  {
-    icon: ClipboardCheck,
-    iconBg: "#e8f5e9",
-    iconColor: "#16a34a",
-    title: "Report Reviewed",
-    description: "Q2 finance report reviewed and approved by management.",
-    time: "2 WEEKS AGO",
-  },
-  {
-    icon: Building2,
-    iconBg: "#fef3e2",
-    iconColor: "#d97706",
-    title: "New Division Created",
-    description: "Prayer & Intercession Division officially launched.",
-    time: "2 WEEKS AGO",
-  },
-  {
-    icon: FileBarChart,
-    iconBg: "#f3e8ff",
-    iconColor: "#7c3aed",
-    title: "Annual Budget Drafted",
-    description: "Finance committee completed the 2026 budget draft.",
-    time: "3 WEEKS AGO",
-  },
-  {
-    icon: AlertTriangle,
-    iconBg: "#fff3cd",
-    iconColor: "#d97706",
-    title: "Maintenance Scheduled",
-    description: "Sound equipment maintenance booked for next week.",
-    time: "3 WEEKS AGO",
-  },
-];
+const iconMap = {
+  UserPlus: UserPlus,
+  Building2: Building2,
+  Wallet: Wallet,
+  PackageCheck: PackageCheck,
+  ClipboardCheck: ClipboardCheck,
+  AlertTriangle: AlertTriangle,
+  FileBarChart: FileBarChart,
+  Users: Users
+};
 
 const Dashboard = ({ setActivePage }) => {
   const [chartPeriod, setChartPeriod] = useState("year");
   const [showAllActivities, setShowAllActivities] = useState(false);
-  const [stats, setStats] = useState({ members: 0, divisions: 0 });
+  const [dashboardData, setDashboardData] = useState({ 
+    members: 0, 
+    events: 0, 
+    inventory: 0, 
+    finance: { income: 0, expenses: 0, balance: 0 } 
+  });
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const [members, divisions] = await Promise.all([
-          apiFetch("/members"),
-          apiFetch("/divisions")
+        const [statsData, activitiesData] = await Promise.all([
+          apiFetch("/dashboard/summary"),
+          apiFetch("/dashboard/activities")
         ]);
-        setStats({
-          members: members.length,
-          divisions: divisions.length
-        });
+        setDashboardData(statsData);
+        setActivities(activitiesData || []);
       } catch (err) {
         console.error("Failed to fetch dashboard stats", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchStats();
+    fetchDashboardData();
   }, []);
 
   const chartData = chartPeriod === "month" ? monthlyData : yearlyData;
@@ -208,28 +87,18 @@ const Dashboard = ({ setActivePage }) => {
   const summaryCards = [
     {
       title: "Total Members",
-      value: stats.members.toLocaleString(),
-      change: "+0%",
-      changeType: "neutral",
+      value: dashboardData.members.toLocaleString(),
+      change: "Active",
+      changeType: "positive",
       icon: Users,
       iconBg: "#e8f0fe",
       iconColor: "#1a56db",
       page: "members",
     },
     {
-      title: "Total Divisions",
-      value: stats.divisions.toString(),
-      change: "0%",
-      changeType: "neutral",
-      icon: Building2,
-      iconBg: "#fef3e2",
-      iconColor: "#d97706",
-      page: "divisions",
-    },
-    {
-      title: "Monthly Budget",
-      value: "45,000 ETB",
-      change: "+12%",
+      title: "Balance",
+      value: `${dashboardData.finance.balance.toLocaleString('en-US')} ETB`,
+      change: "Available",
       changeType: "positive",
       icon: Wallet,
       iconBg: "#e8f5e9",
@@ -237,10 +106,20 @@ const Dashboard = ({ setActivePage }) => {
       page: "finance",
     },
     {
-      title: "Inventory Status",
-      value: "Optimal",
-      change: "-2%",
-      changeType: "negative",
+      title: "Total Events",
+      value: dashboardData.events.toString(),
+      change: "Planned",
+      changeType: "neutral",
+      icon: Building2,
+      iconBg: "#fef3e2",
+      iconColor: "#d97706",
+      page: "events",
+    },
+    {
+      title: "Inventory",
+      value: dashboardData.inventory.toString(),
+      change: "Items Tracker",
+      changeType: "neutral",
       icon: PackageCheck,
       iconBg: "#fce4ec",
       iconColor: "#dc2626",
@@ -301,29 +180,18 @@ const Dashboard = ({ setActivePage }) => {
               <p className="dash-chart-subtitle">Income vs Expenses trend</p>
             </div>
             <div className="dash-period-toggle">
-              <button
-                className={chartPeriod === "month" ? "active" : ""}
-                onClick={() => setChartPeriod("month")}
-              >
-                Month
-              </button>
-              <button
-                className={chartPeriod === "year" ? "active" : ""}
-                onClick={() => setChartPeriod("year")}
-              >
-                Year
-              </button>
+              <button className="active">All Time</button>
             </div>
           </div>
           <div className="dash-chart-amount">
-            <h2>542,000 ETB</h2>
-            <span className="dash-chart-percent">
-              <ArrowUpRight size={14} /> 15%
+            <h2>{dashboardData.finance.balance.toLocaleString('en-US')} ETB</h2>
+            <span className="dash-chart-percent positive">
+              <ArrowUpRight size={14} /> Available Balance
             </span>
           </div>
           <div className="dash-chart-container">
             <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={chartData}>
+              <AreaChart data={[{ name: 'Total', income: dashboardData.finance.income, expenses: dashboardData.finance.expenses }]}>
                 <defs>
                   <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#1a56db" stopOpacity={0.15} />
@@ -377,24 +245,31 @@ const Dashboard = ({ setActivePage }) => {
             </button>
           </div>
           <div className="dash-activities-list">
-            {recentActivities.map((activity, idx) => {
-              const Icon = activity.icon;
-              return (
-                <div key={idx} className="dash-activity-item">
-                  <div
-                    className="dash-activity-icon"
-                    style={{ background: activity.iconBg }}
-                  >
-                    <Icon size={18} color={activity.iconColor} />
+            {activities.length === 0 ? (
+              <div className="dash-empty-state">
+                <FileBarChart size={32} color="#cbd5e1" />
+                <p>No recent activities found.</p>
+              </div>
+            ) : (
+              activities.slice(0, 4).map((activity, idx) => {
+                const Icon = iconMap[activity.icon] || ClipboardCheck;
+                return (
+                  <div key={idx} className="dash-activity-item">
+                    <div
+                      className="dash-activity-icon"
+                      style={{ background: activity.iconBg }}
+                    >
+                      <Icon size={18} color={activity.iconColor} />
+                    </div>
+                    <div className="dash-activity-content">
+                      <h4>{activity.title}</h4>
+                      <p>{activity.description}</p>
+                      <span className="dash-activity-time">{activity.time}</span>
+                    </div>
                   </div>
-                  <div className="dash-activity-content">
-                    <h4>{activity.title}</h4>
-                    <p>{activity.description}</p>
-                    <span className="dash-activity-time">{activity.time}</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       </div>
@@ -408,7 +283,7 @@ const Dashboard = ({ setActivePage }) => {
         >
           <div className="dash-bottom-card-content">
             <h3>Division Management</h3>
-            <p>Assign tasks and manage members across {stats.divisions} active divisions.</p>
+            <p>Assign tasks and manage members across {dashboardData.divisions || 0} active divisions.</p>
           </div>
           <div className="dash-bottom-card-icon">
             <Building2 size={40} color="rgba(255,255,255,0.3)" />
@@ -459,29 +334,35 @@ const Dashboard = ({ setActivePage }) => {
             </div>
 
             <div className="activities-modal-body">
-              {allActivities.map((activity, idx) => {
-                const Icon = activity.icon;
-                return (
-                  <div
-                    key={idx}
-                    className="dash-activity-item activities-modal-item"
-                  >
+              {activities.length === 0 ? (
+                 <div className="dash-empty-state" style={{ marginTop: '40px', textAlign: 'center' }}>
+                   <p>No activities have been recorded yet.</p>
+                 </div>
+              ) : (
+                activities.map((activity, idx) => {
+                  const Icon = iconMap[activity.icon] || ClipboardCheck;
+                  return (
                     <div
-                      className="dash-activity-icon"
-                      style={{ background: activity.iconBg }}
+                      key={idx}
+                      className="dash-activity-item activities-modal-item"
                     >
-                      <Icon size={18} color={activity.iconColor} />
+                      <div
+                        className="dash-activity-icon"
+                        style={{ background: activity.iconBg }}
+                      >
+                        <Icon size={18} color={activity.iconColor} />
+                      </div>
+                      <div className="dash-activity-content">
+                        <h4>{activity.title}</h4>
+                        <p>{activity.description}</p>
+                        <span className="dash-activity-time">
+                          {activity.time}
+                        </span>
+                      </div>
                     </div>
-                    <div className="dash-activity-content">
-                      <h4>{activity.title}</h4>
-                      <p>{activity.description}</p>
-                      <span className="dash-activity-time">
-                        {activity.time}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

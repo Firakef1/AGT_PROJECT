@@ -1,4 +1,4 @@
-import { prisma } from "../prisma/client.js";
+import { prisma } from "../prisma/client";
 
 export async function recordTransaction(data: {
   type: "INCOME" | "EXPENSE";

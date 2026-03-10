@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 const Sidebar = ({
+  user,
   activePage,
   setActivePage,
   collapsed,
@@ -78,6 +79,18 @@ const Sidebar = ({
             </button>
           );
         })}
+        {!collapsed && <div className="sidebar-section-label">Portals</div>}
+        <button
+          className={`nav-item ${activePage === "members-dashboard" ? "active" : ""}`}
+          onClick={() => setActivePage("members-dashboard")}
+          title={collapsed ? "Members Division Dashboard" : undefined}
+          style={{ display: (user?.role === "ADMIN" || user?.role === "MEMBERS_MANAGER") ? "flex" : "none" }}
+        >
+          <span className="nav-icon">
+            <Users size={18} color="#7c3aed" />
+          </span>
+          {!collapsed && <span className="nav-label" style={{ color: "#7c3aed", fontWeight: 600 }}>Members Portal</span>}
+        </button>
       </nav>
 
       {/* ── Footer actions ── */}

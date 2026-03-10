@@ -3,8 +3,8 @@ import {
   financeSummaryController,
   recordTransactionController,
   listTransactionsController,
-} from "../controllers/financeController.js";
-import { authenticate, authorize } from "../middleware/authMiddleware.js";
+} from "../controllers/financeController";
+import { authenticate, authorize } from "../middleware/authMiddleware";
 
 const router = Router();
 

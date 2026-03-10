@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   AreaChart,
   Area,
@@ -21,58 +21,18 @@ import {
   CheckCircle,
   AlertCircle,
   Search,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react'
-
-const spendingData = [
-  { name: 'JAN', amount: 22000 },
-  { name: 'FEB', amount: 18000 },
-  { name: 'MAR', amount: 28000 },
-  { name: 'APR', amount: 24000 },
-  { name: 'MAY', amount: 32000 },
-  { name: 'JUN', amount: 26000 },
-]
-
-const budgetDistribution = [
-  { name: 'Church Events', percent: 75, color: '#1a56db' },
-  { name: 'Administrative', percent: 42, color: '#d97706' },
-  { name: 'Social Services', percent: 60, color: '#16a34a' },
-  { name: 'Maintenance', percent: 18, color: '#dc2626' },
-]
-
-const transactions = [
-  { desc: 'Weekly Contribution', category: 'Donation', date: 'May 12, 2024', status: 'Completed', amount: '+ ETB 15,200.00', type: 'income' },
-  { desc: 'Audio Equipment Repair', category: 'Maintenance', date: 'May 10, 2024', status: 'Completed', amount: '- ETB 3,450.00', type: 'expense' },
-  { desc: 'Conference Catering', category: 'Events', date: 'May 08, 2024', status: 'Processing', amount: '- ETB 8,900.00', type: 'expense' },
-  { desc: 'Member Monthly Dues', category: 'Dues', date: 'May 05, 2024', status: 'Completed', amount: '+ ETB 24,000.00', type: 'income' },
-]
+import { apiFetch } from '../services/apiFetch'
 
 const Finance = () => {
-  const [incomeData, setIncomeData] = useState([
-    { name: 'JAN', amount: 45000 },
-    { name: 'FEB', amount: 42000 },
-    { name: 'MAR', amount: 48000 },
-    { name: 'APR', amount: 50000 },
-    { name: 'MAY', amount: 45000 },
-  ])
 
-  const [expenseData, setExpenseData] = useState([
-    { name: 'JAN', amount: 22000 },
-    { name: 'FEB', amount: 18000 },
-    { name: 'MAR', amount: 28000 },
-    { name: 'APR', amount: 24000 },
-    { name: 'MAY', amount: 32000 },
-    { name: 'JUN', amount: 12300 },
-  ])
-
-  const [weeklyExpenseData, setWeeklyExpenseData] = useState([
-    { name: 'Week 1', amount: 2100 },
-    { name: 'Week 2', amount: 4200 },
-    { name: 'Week 3', amount: 3500 },
-    { name: 'Week 4', amount: 2500 },
-  ])
-
-  const [transactionList, setTransactionList] = useState(transactions)
+  const [transactionList, setTransactionList] = useState([])
+  const [financeSummary, setFinanceSummary] = useState({ income: 0, expenses: 0, balance: 0, count: 0 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showIncomeModal, setShowIncomeModal] = useState(false)
   const [showExpenseModal, setShowExpenseModal] = useState(false)
   const [formData, setFormData] = useState({
@@ -91,24 +51,80 @@ const Finance = () => {
   const [filterCategory, setFilterCategory] = useState('All')
   const [filterType, setFilterType] = useState('All')
 
-  const budgetDetails = [
-    { name: 'Church Events', allocated: 120000, spent: 90000, remaining: 30000, color: '#1a56db', status: 'On Track' },
-    { name: 'Administrative', allocated: 50000, spent: 21000, remaining: 29000, color: '#d97706', status: 'On Track' },
-    { name: 'Social Services', allocated: 80000, spent: 48000, remaining: 32000, color: '#16a34a', status: 'On Track' },
-    { name: 'Maintenance', allocated: 40000, spent: 32800, remaining: 7200, color: '#dc2626', status: 'Warning' },
-    { name: 'Audio/Visual', allocated: 25000, spent: 15000, remaining: 10000, color: '#7c3aed', status: 'On Track' },
-  ]
+  const budgetDetails = useMemo(() => {
+    const expenses = transactionList.filter(t => t.type === 'EXPENSE')
+    const categoryTotals = {}
+    expenses.forEach(t => {
+      const cat = t.description?.includes(' | Category: ') ? t.description.split(' | Category: ')[1] : 'Other'
+      categoryTotals[cat] = (categoryTotals[cat] || 0) + t.amount
+    })
+    
+    return Object.entries({
+      'Events': { allocated: 120000, color: '#1a56db' },
+      'Administrative': { allocated: 50000, color: '#d97706' },
+      'Social Services': { allocated: 80000, color: '#16a34a' },
+      'Maintenance': { allocated: 40000, color: '#dc2626' },
+      'Other': { allocated: 25000, color: '#7c3aed' },
+    }).map(([name, data]) => {
+      const spent = categoryTotals[name] || 0
+      const remaining = data.allocated - spent
+      const status = spent >= data.allocated ? 'Warning' : 'On Track'
+      const percent = Math.min((spent / data.allocated) * 100, 100).toFixed(1)
+      return { name, allocated: data.allocated, spent, remaining, color: data.color, status, percent }
+    })
+  }, [transactionList])
+
+  const budgetDistribution = useMemo(() => {
+    const totalSpent = budgetDetails.reduce((acc, curr) => acc + curr.spent, 0)
+    return budgetDetails.filter(b => b.spent > 0).map(b => ({
+      name: b.name,
+      percent: totalSpent > 0 ? ((b.spent / totalSpent) * 100).toFixed(1) : 0,
+      color: b.color
+    })).sort((a,b) => b.percent - a.percent)
+  }, [budgetDetails])
+
+  const derivedExpenseData = useMemo(() => {
+    const grouped = {}
+    transactionList.filter(t => t.type === 'EXPENSE').forEach(t => {
+      const d = new Date(t.occurredAt)
+      const monthRef = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+      grouped[monthRef] = (grouped[monthRef] || 0) + t.amount
+    })
+    return Object.keys(grouped).sort().map(k => {
+      const [y, m] = k.split('-')
+      const name = new Date(y, parseInt(m)-1).toLocaleString('en-US', { month: 'short' }).toUpperCase()
+      return { name, amount: grouped[k] }
+    })
+  }, [transactionList])
+
+  const fetchFinanceData = async () => {
+    try {
+      setLoading(true)
+      const [summaryRes, transactionsRes] = await Promise.all([
+        apiFetch('/finance/summary'),
+        apiFetch('/finance')
+      ])
+      setFinanceSummary(summaryRes)
+      setTransactionList(transactionsRes)
+      
+      // We can map mock chart data here if we want or just leave them empty
+      // for now until a real timeseries API exists.
+    } catch (err) {
+      console.error('Error fetching finance data:', err)
+      setError('Failed to load finance data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchFinanceData()
+  }, [])
 
   // Derived Stats
-  const totalIncome = transactionList
-    .filter(tx => tx.type === 'income')
-    .reduce((acc, curr) => acc + (parseFloat(curr.amount.replace(/[^0-9.-]+/g, "")) || 0), 0)
-
-  const totalExpense = transactionList
-    .filter(tx => tx.type === 'expense')
-    .reduce((acc, curr) => acc + (Math.abs(parseFloat(curr.amount.replace(/[^0-9.-]+/g, ""))) || 0), 0)
-
-  const balance = totalIncome - totalExpense
+  const totalIncome = financeSummary.income || 0
+  const totalExpense = financeSummary.expenses || 0
+  const balance = financeSummary.balance || 0
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -124,47 +140,53 @@ const Finance = () => {
     })
   }
 
-  const handleAddTransaction = (type) => {
+  const handleAddTransaction = async (type) => {
     if (!formData.desc || !formData.amount || !formData.category) {
       alert('Please fill in all fields')
       return
     }
 
     const amountNum = parseFloat(formData.amount)
-    if (isNaN(amountNum)) {
+    if (isNaN(amountNum) || amountNum <= 0) {
       alert('Invalid amount')
       return
     }
 
-    const newTx = {
-      desc: formData.desc,
-      category: formData.category,
-      date: formData.date,
-      status: 'Completed',
-      amount: `${type === 'income' ? '+' : '-'} ETB ${amountNum.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-      type: type
+    setIsSubmitting(true)
+    try {
+      await apiFetch('/finance', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: type.toUpperCase(),
+          amount: amountNum,
+          description: formData.desc + ' | Category: ' + formData.category,
+        })
+      })
+      
+      await fetchFinanceData()
+      resetForm()
+      
+      if (type === 'income') setShowIncomeModal(false)
+      if (type === 'expense') setShowExpenseModal(false)
+    } catch (err) {
+      console.error(`Error adding ${type}:`, err)
+      alert(err.message || 'Failed to add transaction')
+    } finally {
+      setIsSubmitting(false)
     }
-
-    setTransactionList(prev => [newTx, ...prev])
-
-    // Update chart data (simplified: update JUN and Week 4)
-    if (type === 'expense') {
-      setExpenseData(prev => prev.map(d => d.name === 'JUN' ? { ...d, amount: d.amount + amountNum } : d))
-      setWeeklyExpenseData(prev => prev.map(d => d.name === 'Week 4' ? { ...d, amount: d.amount + amountNum } : d))
-    }
-
-    setShowIncomeModal(false)
-    setShowExpenseModal(false)
-    resetForm()
   }
 
   // Derived filtered transactions for the "View All" modal
   const filteredTransactions = transactionList.filter(tx => {
-    const matchesSearch = tx.desc.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = filterCategory === 'All' || tx.category === filterCategory
-    const matchesType = filterType === 'All' || tx.type === filterType
+    const matchesSearch = (tx.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+    // Basic category filter hack since we stored it in description
+    const matchesCategory = filterCategory === 'All' || (tx.description || '').includes(`Category: ${filterCategory}`)
+    const matchesType = filterType === 'All' || tx.type.toLowerCase() === filterType.toLowerCase()
     return matchesSearch && matchesCategory && matchesType
   })
+
+  if (loading) return <div className="page-v2 flex-center"><Loader2 className="spin" /></div>
+  if (error) return <div className="page-v2 flex-center"><p className="text-red-500">{error}</p></div>
 
   return (
     <div className="page-v2">
@@ -175,10 +197,10 @@ const Finance = () => {
           <p>ASTU Gibi Gubae Internal Management</p>
         </div>
         <div className="header-actions-group">
-          <button className="btn-accent-outline" onClick={() => setShowIncomeModal(true)}>
+          <button className="btn-accent-outline" onClick={() => setShowIncomeModal(true)} disabled={isSubmitting}>
             <Plus size={14} /> Add Income
           </button>
-          <button className="btn-accent-dark" onClick={() => setShowExpenseModal(true)}>
+          <button className="btn-accent-dark" onClick={() => setShowExpenseModal(true)} disabled={isSubmitting}>
             <Minus size={14} /> Add Expense
           </button>
         </div>
@@ -250,7 +272,7 @@ const Finance = () => {
           </div>
           <div className="fin-chart-container">
             <ResponsiveContainer width="100%" height="250">
-              <AreaChart key={activePeriod} data={activePeriod === 1 ? weeklyExpenseData : expenseData.slice(-activePeriod)}>
+              <AreaChart key={activePeriod} data={derivedExpenseData.length > 0 ? derivedExpenseData.slice(-activePeriod) : [{name: 'Empty', amount: 0}]}>
                 <defs>
                   <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#1a56db" stopOpacity={0.12} />
@@ -286,20 +308,24 @@ const Finance = () => {
         <div className="page-v2-card">
           <h3>Budget Distribution</h3>
           <div className="budget-bars">
-            {budgetDistribution.map((item, idx) => (
-              <div key={idx} className="budget-bar-item">
-                <div className="budget-bar-header">
-                  <span>{item.name}</span>
-                  <span className="budget-bar-percent">{item.percent}%</span>
+            {budgetDistribution.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No expenses logged yet.</p>
+            ) : (
+              budgetDistribution.map((item, idx) => (
+                <div key={idx} className="budget-bar-item">
+                  <div className="budget-bar-header">
+                    <span>{item.name}</span>
+                    <span className="budget-bar-percent">{item.percent}%</span>
+                  </div>
+                  <div className="budget-bar-track">
+                    <div
+                      className="budget-bar-fill"
+                      style={{ width: `${item.percent}%`, background: item.color }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="budget-bar-track">
-                  <div
-                    className="budget-bar-fill"
-                    style={{ width: `${item.percent}%`, background: item.color }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
           <button className="btn-view-detail" onClick={() => setShowBudgetModal(true)}>View Detailed Budget</button>
         </div>
@@ -332,24 +358,24 @@ const Finance = () => {
               <tr key={idx}>
                 <td>
                   <div className="name-with-icon">
-                    <div className={`tx-icon ${tx.type}`}>
-                      {tx.type === 'income'
+                    <div className={`tx-icon ${tx.type.toLowerCase()}`}>
+                      {tx.type === 'INCOME'
                         ? <ArrowDownRight size={14} />
                         : <ArrowUpRight size={14} />
                       }
                     </div>
-                    <strong>{tx.desc}</strong>
+                    <strong>{tx.description?.split(' | Category: ')[0] || tx.description}</strong>
                   </div>
                 </td>
-                <td>{tx.category}</td>
-                <td>{tx.date}</td>
+                <td>{tx.description?.includes(' | Category: ') ? tx.description.split(' | Category: ')[1] : 'Other'}</td>
+                <td>{new Date(tx.occurredAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                 <td>
-                  <span className={`status-pill ${tx.status.toLowerCase()}`}>
-                    {tx.status}
+                  <span className={`status-pill completed`}>
+                    Completed
                   </span>
                 </td>
-                <td className={`tx-amount ${tx.type}`} style={{ textAlign: 'right' }}>
-                  {tx.amount}
+                <td className={`tx-amount ${tx.type.toLowerCase()}`} style={{ textAlign: 'right' }}>
+                  {tx.type === 'INCOME' ? '+' : '-'} ETB {parseFloat(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </td>
               </tr>
             ))}
@@ -627,16 +653,18 @@ const Finance = () => {
                         <tr key={idx}>
                           <td>
                             <div className="name-with-icon">
-                              <div className={`tx-icon ${tx.type}`}>
-                                {tx.type === 'income' ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
+                              <div className={`tx-icon ${tx.type.toLowerCase()}`}>
+                                {tx.type === 'INCOME' ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
                               </div>
-                              <strong>{tx.desc}</strong>
+                              <strong>{tx.description?.split(' | Category: ')[0] || tx.description}</strong>
                             </div>
                           </td>
-                          <td>{tx.category}</td>
-                          <td>{tx.date}</td>
-                          <td><span className={`status-pill ${tx.status.toLowerCase()}`}>{tx.status}</span></td>
-                          <td className={`tx-amount ${tx.type}`} style={{ textAlign: 'right' }}>{tx.amount}</td>
+                          <td>{tx.description?.includes(' | Category: ') ? tx.description.split(' | Category: ')[1] : 'Other'}</td>
+                          <td>{new Date(tx.occurredAt).toLocaleDateString()}</td>
+                          <td><span className={`status-pill completed`}>Completed</span></td>
+                          <td className={`tx-amount ${tx.type.toLowerCase()}`} style={{ textAlign: 'right' }}>
+                            {tx.type === 'INCOME' ? '+' : '-'} ETB {parseFloat(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
                         </tr>
                       ))
                     ) : (

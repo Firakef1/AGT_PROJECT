@@ -7,8 +7,17 @@ export async function createEvent(data: {
   endTime: Date;
   location?: string;
   divisionId?: string;
+  expectedFamilyIds?: string[];
 }) {
-  return prisma.event.create({ data });
+  const { expectedFamilyIds, ...rest } = data;
+  return prisma.event.create({
+      data: {
+          ...rest,
+          expectedFamilies: expectedFamilyIds ? {
+              connect: expectedFamilyIds.map(id => ({ id }))
+          } : undefined
+      }
+  });
 }
 
 export async function listEvents(params?: { scope?: "upcoming" | "past" }) {
@@ -24,7 +33,7 @@ export async function listEvents(params?: { scope?: "upcoming" | "past" }) {
   return prisma.event.findMany({
     where,
     orderBy: { startTime: "asc" },
-    include: { division: true },
+    include: { division: true, expectedFamilies: true },
   });
 }
 
@@ -37,9 +46,19 @@ export async function updateEvent(
     endTime: Date;
     location?: string;
     divisionId?: string;
+    expectedFamilyIds?: string[];
   }>,
 ) {
-  return prisma.event.update({ where: { id }, data });
+  const { expectedFamilyIds, ...rest } = data;
+  return prisma.event.update({ 
+      where: { id },
+      data: {
+          ...rest,
+          expectedFamilies: expectedFamilyIds ? {
+              set: expectedFamilyIds.map(fid => ({ id: fid }))
+          } : undefined
+      }
+  });
 }
 
 export async function deleteEvent(id: string) {

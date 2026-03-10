@@ -16,6 +16,7 @@ import MembersTopbar from "./MembersTopbar";
  *   children         {node}     – the active page component rendered in the content area
  */
 const MembersLayout = ({
+  user,
   activePage,
   setActivePage,
   onLogout,
@@ -39,6 +40,7 @@ const MembersLayout = ({
       {/* ── Right: topbar + scrollable content ── */}
       <div className="members-main-content">
         <MembersTopbar
+          user={user}
           activePage={activePage}
           onLogout={onLogout}
         />

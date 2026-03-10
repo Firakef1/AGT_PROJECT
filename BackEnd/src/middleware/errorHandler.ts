@@ -29,26 +29,24 @@ export function errorHandler(
 
   // ── Prisma well-known errors ────────────────────────────────────────────────
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    switch (err.code) {
+    const prismaErr = err;
+    switch (prismaErr.code) {
       case "P2002":
-        // Unique constraint violation
         return res.status(409).json({
           message: "A record with this value already exists.",
-          field: (err.meta?.target as string[] | undefined)?.join(", "),
+          field: (prismaErr.meta?.target as string[] | undefined)?.join(", "),
         });
 
       case "P2025":
-        // Record not found (e.g. update/delete on non-existent row)
         return res.status(404).json({ message: "Record not found." });
 
       case "P2003":
-        // Foreign key constraint failed
         return res.status(400).json({
           message: "Referenced record does not exist.",
         });
 
       default:
-        console.error("[Prisma]", err.code, err.message);
+        console.error("[Prisma]", prismaErr.code, prismaErr.message);
         return res.status(500).json({ message: "Database error." });
     }
   }

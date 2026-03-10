@@ -16,6 +16,7 @@ const eventCreateSchema = z.object({
   endTime: z.string().datetime(),
   location: z.string().optional(),
   divisionId: z.string().uuid().optional(),
+  expectedFamilyIds: z.array(z.string().uuid()).optional(),
 });
 
 const eventUpdateSchema = eventCreateSchema.partial();
@@ -43,7 +44,7 @@ export async function createEventController(req: Request, res: Response) {
     });
 
     await Promise.all(
-      members.map((m) =>
+      members.map((m: { email: string; fullName: string }) =>
         sendEmail({
           to: m.email,
           subject: `New Event: ${created.title}`,
@@ -73,7 +74,10 @@ export async function updateEventController(req: Request, res: Response) {
       .json({ message: "Invalid input", errors: parse.error.flatten() });
   }
 
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   const data = parse.data;
   const updated = await updateEvent(id, {
     ...data,
@@ -84,7 +88,10 @@ export async function updateEventController(req: Request, res: Response) {
 }
 
 export async function deleteEventController(req: Request, res: Response) {
-  const { id } = req.params;
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    return res.status(400).json({ message: "Invalid id" });
+  }
   await deleteEvent(id);
   return res.status(204).send();
 }
