@@ -81,6 +81,8 @@ export const EMPTY_MEMBER_FORM = {
 export const EMPTY_FAMILY_FORM = {
   name:        "",
   leaderId:    null,
+  fatherId:    null,
+  motherId:    null,
   description: "",
 };
 

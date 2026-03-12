@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { CalendarDays, Plus, Pencil, Trash2, ArrowLeft, Loader2, X } from "lucide-react";
+import { CalendarDays, Plus, Pencil, Trash2, ArrowLeft, Loader2, X, MapPin, Calendar } from "lucide-react";
 import { apiFetch } from "../../services/apiFetch";
+
+const SCOPE_UPCOMING = "upcoming";
+const SCOPE_PAST = "past";
 
 const EventsPage = ({ user, onNavigate }) => {
   const myDivisionId = user?.member?.divisionId ?? null;
   const [events, setEvents] = useState([]);
   const [divisions, setDivisions] = useState([]);
+  const [scope, setScope] = useState(SCOPE_UPCOMING);
   const [filterDivisionId, setFilterDivisionId] = useState(myDivisionId || "");
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -13,12 +17,16 @@ const EventsPage = ({ user, onNavigate }) => {
   const [form, setForm] = useState({ title: "", description: "", startTime: "", endTime: "", location: "", divisionId: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchEvents = async () => {
     try {
-      const url = filterDivisionId
-        ? `/events?divisionId=${encodeURIComponent(filterDivisionId)}`
-        : "/events";
+      setError(null);
+      const params = new URLSearchParams();
+      if (scope) params.set("scope", scope);
+      if (filterDivisionId) params.set("divisionId", filterDivisionId);
+      const url = params.toString() ? `/events?${params.toString()}` : "/events";
       const data = await apiFetch(url);
       setEvents(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -44,7 +52,7 @@ const EventsPage = ({ user, onNavigate }) => {
   useEffect(() => {
     setLoading(true);
     fetchEvents();
-  }, [filterDivisionId]);
+  }, [filterDivisionId, scope]);
 
   const openCreate = () => {
     setEditingEvent(null);
@@ -102,99 +110,154 @@ const EventsPage = ({ user, onNavigate }) => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this event?")) return;
+  const openDeleteConfirm = (event) => {
+    setDeleteConfirm(event);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
     try {
-      await apiFetch(`/events/${id}`, { method: "DELETE" });
+      await apiFetch(`/events/${deleteConfirm.id}`, { method: "DELETE" });
+      setDeleteConfirm(null);
       await fetchEvents();
     } catch (err) {
       alert(err.message || "Failed to delete event");
+    } finally {
+      setDeleting(false);
     }
   };
 
   const formatDate = (d) => (d ? new Date(d).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : "—");
+  const formatTime = (d) => (d ? new Date(d).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "");
 
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 300 }}>
+      <div className="members-loading">
         <Loader2 size={32} className="spin" />
       </div>
     );
   }
 
   return (
-    <div className="events-page" style={{ padding: "1.5rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem", marginBottom: "1.5rem" }}>
+    <div className="events-page">
+      <div className="members-page-header-row">
         <div>
-          <h1 style={{ margin: 0, fontSize: "1.5rem" }}>Events</h1>
-          <p style={{ margin: "0.25rem 0 0", color: "var(--text-light)", fontSize: "0.9rem" }}>
-            Plan and manage division events. Division members receive an email with an option to add the event to Google Calendar.
+          <h1 className="members-page-title">Events</h1>
+          <p className="members-page-subtitle">
+            Create division events; members get an email with an “Add to Google Calendar” link.
           </p>
         </div>
-        <button className="btn-accent" onClick={openCreate}>
+        <button type="button" className="btn-accent" onClick={openCreate} style={{ flexShrink: 0 }}>
           <Plus size={16} /> New Event
         </button>
       </div>
 
-      {divisions.length > 0 && (
-        <div className="mem-form-group" style={{ marginBottom: "1rem" }}>
-          <label className="mem-form-label">Division filter</label>
+      <div className="events-toolbar">
+        <div className="events-segmented">
+          <button
+            type="button"
+            className={scope === SCOPE_UPCOMING ? "active" : ""}
+            onClick={() => setScope(SCOPE_UPCOMING)}
+          >
+            Upcoming
+          </button>
+          <button
+            type="button"
+            className={scope === SCOPE_PAST ? "active" : ""}
+            onClick={() => setScope(SCOPE_PAST)}
+          >
+            Past
+          </button>
+        </div>
+        {divisions.length > 0 && (
           <select
-            className="mem-form-select"
+            className="mem-form-select events-filter-select"
             value={filterDivisionId}
             onChange={(e) => setFilterDivisionId(e.target.value)}
-            style={{ maxWidth: 280 }}
           >
             <option value="">All divisions</option>
             {divisions.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </select>
-        </div>
-      )}
+        )}
+      </div>
 
-      {error && <p style={{ color: "var(--red)", marginBottom: "1rem" }}>{error}</p>}
+      {error && <p className="members-error-text">{error}</p>}
 
       {events.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "3rem", background: "var(--white)", borderRadius: "var(--radius)", border: "1px solid var(--border)" }}>
-          <CalendarDays size={48} color="var(--text-light)" style={{ marginBottom: "1rem" }} />
-          <p style={{ color: "var(--text-light)" }}>No events yet. Create one to get started.</p>
-          <button className="btn-accent" onClick={openCreate} style={{ marginTop: "1rem" }}>Create Event</button>
+        <div className="members-empty-state">
+          <CalendarDays size={40} color="var(--gray-400)" className="members-empty-icon" aria-hidden />
+          <p className="members-empty-text">
+            {scope === SCOPE_PAST ? "No past events." : "No upcoming events. Create one to get started."}
+          </p>
+          {scope === SCOPE_UPCOMING && (
+            <button type="button" className="btn-accent members-empty-action" onClick={openCreate}>
+              <Plus size={14} /> Create Event
+            </button>
+          )}
         </div>
       ) : (
-        <div style={{ display: "grid", gap: "1rem" }}>
+        <ul className="events-list">
           {events.map((event) => (
-            <div
-              key={event.id}
-              style={{
-                padding: "1rem 1.25rem",
-                background: "var(--white)",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                flexWrap: "wrap",
-                gap: "0.75rem",
-              }}
-            >
-              <div>
-                <h3 style={{ margin: 0, fontSize: "1.1rem" }}>{event.title}</h3>
-                <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem", color: "var(--text-light)" }}>
-                  {formatDate(event.startTime)} – {formatDate(event.endTime)}
-                </p>
-                {event.division?.name && (
-                  <p style={{ margin: "0.25rem 0 0", fontSize: "0.8rem", color: "var(--blue)" }}>{event.division.name}</p>
+            <li key={event.id} className="event-card">
+              <div className="event-card-content">
+                <h3 className="event-card-title">{event.title}</h3>
+                <div className="event-card-meta">
+                  <span>
+                    <Calendar size={12} aria-hidden /> {formatDate(event.startTime)} – {formatTime(event.endTime)}
+                  </span>
+                  {event.division?.name && (
+                    <span style={{ color: "var(--blue)", fontWeight: 500 }}>{event.division.name}</span>
+                  )}
+                  {event.location && (
+                    <span>
+                      <MapPin size={12} aria-hidden /> {event.location}
+                    </span>
+                  )}
+                </div>
+                {event.description && (
+                  <p className="event-card-desc">{event.description}</p>
                 )}
-                {event.location && <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem" }}>{event.location}</p>}
-                {event.description && <p style={{ margin: "0.5rem 0 0", fontSize: "0.9rem", color: "var(--text-secondary)" }}>{event.description}</p>}
               </div>
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <button type="button" className="mem-modal-btn cancel" onClick={() => openEdit(event)}><Pencil size={14} /> Edit</button>
-                <button type="button" className="mem-modal-btn submit" style={{ background: "var(--red)" }} onClick={() => handleDelete(event.id)}><Trash2 size={14} /> Delete</button>
+              <div className="event-card-actions">
+                <button type="button" className="icon-btn" title="Edit event" onClick={() => openEdit(event)}>
+                  <Pencil size={15} aria-hidden />
+                </button>
+                <button type="button" className="icon-btn danger" title="Delete event" onClick={() => openDeleteConfirm(event)}>
+                  <Trash2 size={15} aria-hidden />
+                </button>
               </div>
-            </div>
+            </li>
           ))}
+        </ul>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteConfirm && (
+        <div className="mem-modal-overlay" onClick={() => !deleting && setDeleteConfirm(null)}>
+          <div className="mem-modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <div className="mem-modal-header">
+              <h3 className="mem-modal-title">Delete event</h3>
+              <button type="button" className="mem-modal-close" onClick={() => !deleting && setDeleteConfirm(null)} disabled={deleting} aria-label="Close">
+                <X size={17} />
+              </button>
+            </div>
+            <div className="mem-modal-body">
+              <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                Are you sure you want to delete <strong style={{ color: "var(--text-primary)" }}>{deleteConfirm.title}</strong>? This cannot be undone.
+              </p>
+            </div>
+            <div className="mem-modal-footer">
+              <button type="button" className="mem-modal-btn cancel" onClick={() => !deleting && setDeleteConfirm(null)} disabled={deleting}>
+                Cancel
+              </button>
+              <button type="button" className="mem-modal-btn submit" style={{ background: "var(--red)" }} onClick={handleDeleteConfirm} disabled={deleting}>
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -252,7 +315,7 @@ const EventsPage = ({ user, onNavigate }) => {
         </div>
       )}
 
-      <div style={{ marginTop: "1.5rem" }}>
+      <div className="members-page-back">
         <button type="button" className="placeholder-btn-secondary" onClick={() => onNavigate("overview")}>
           <ArrowLeft size={14} /> Back to Overview
         </button>

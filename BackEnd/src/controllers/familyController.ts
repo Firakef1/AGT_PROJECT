@@ -6,6 +6,8 @@ const createFamilySchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   leaderId: z.string().uuid().optional().nullable().or(z.literal("")),
+  fatherId: z.string().uuid().optional().nullable().or(z.literal("")),
+  motherId: z.string().uuid().optional().nullable().or(z.literal("")),
 });
 
 const updateFamilySchema = createFamilySchema.partial();
@@ -45,17 +47,75 @@ async function validateLeaderId(leaderId: string | null | undefined): Promise<vo
   if (member.status !== "APPROVED") throw new Error("Family leader must be an approved member.");
 }
 
+async function validateMemberForFamilyRole(
+  memberId: string | null | undefined,
+  roleLabel: string
+): Promise<void> {
+  if (!memberId || memberId.trim() === "") return;
+  const member = await prisma.member.findUnique({
+    where: { id: memberId },
+    select: { status: true },
+  });
+  if (!member) throw new Error(`Selected ${roleLabel} (member) not found.`);
+  if (member.status !== "APPROVED") throw new Error(`Family ${roleLabel} must be an approved member.`);
+}
+
+/**
+ * Set father and/or mother for a family. A member can only be parent (FATHER/MOTHER)
+ * in one family; assigning them here moves them from any other family.
+ */
+async function setFatherAndMother(
+  familyId: string,
+  fatherId: string | null | undefined,
+  motherId: string | null | undefined,
+  options: { updateFather: boolean; updateMother: boolean }
+): Promise<void> {
+  const fid = familyId;
+  if (options.updateFather) {
+    await prisma.member.updateMany({
+      where: { familyId: fid, familyRole: "FATHER" },
+      data: { familyRole: null },
+    });
+    if (fatherId && fatherId.trim() !== "") {
+      await prisma.member.update({
+        where: { id: fatherId },
+        data: { familyId: fid, familyRole: "FATHER" },
+      });
+    }
+  }
+  if (options.updateMother) {
+    await prisma.member.updateMany({
+      where: { familyId: fid, familyRole: "MOTHER" },
+      data: { familyRole: null },
+    });
+    if (motherId && motherId.trim() !== "") {
+      await prisma.member.update({
+        where: { id: motherId },
+        data: { familyId: fid, familyRole: "MOTHER" },
+      });
+    }
+  }
+}
+
 export const createFamily = async (req: Request, res: Response) => {
   try {
     const raw = createFamilySchema.parse(req.body);
     const leaderId = raw.leaderId && raw.leaderId.trim() !== "" ? raw.leaderId : null;
+    const fatherId = raw.fatherId && raw.fatherId.trim() !== "" ? raw.fatherId : null;
+    const motherId = raw.motherId && raw.motherId.trim() !== "" ? raw.motherId : null;
     await validateLeaderId(leaderId);
+    await validateMemberForFamilyRole(fatherId, "father");
+    await validateMemberForFamilyRole(motherId, "mother");
     const family = await prisma.family.create({
       data: { name: raw.name, description: raw.description ?? undefined, leaderId },
     });
+    await setFatherAndMother(family.id, fatherId, motherId, { updateFather: true, updateMother: true });
     const withLeader = await prisma.family.findUnique({
       where: { id: family.id },
-      include: { leader: { select: { id: true, fullName: true, email: true } }, members: true },
+      include: {
+        leader: { select: { id: true, fullName: true, email: true } },
+        members: { select: { id: true, fullName: true, email: true, gender: true, familyRole: true, status: true, studentId: true } },
+      },
     });
     res.status(201).json(withLeader ?? family);
   } catch (err: any) {
@@ -73,15 +133,32 @@ export const updateFamily = async (req: Request, res: Response) => {
     const leaderId = raw.leaderId !== undefined
       ? (raw.leaderId && raw.leaderId.trim() !== "" ? raw.leaderId : null)
       : undefined;
+    const fatherId = raw.fatherId !== undefined
+      ? (raw.fatherId && raw.fatherId.trim() !== "" ? raw.fatherId : null)
+      : undefined;
+    const motherId = raw.motherId !== undefined
+      ? (raw.motherId && raw.motherId.trim() !== "" ? raw.motherId : null)
+      : undefined;
     if (leaderId !== undefined) await validateLeaderId(leaderId);
+    if (fatherId !== undefined) await validateMemberForFamilyRole(fatherId, "father");
+    if (motherId !== undefined) await validateMemberForFamilyRole(motherId, "mother");
     const data: Record<string, unknown> = {};
     if (raw.name !== undefined) data.name = raw.name;
     if (raw.description !== undefined) data.description = raw.description;
     if (leaderId !== undefined) data.leaderId = leaderId;
     const family = await prisma.family.update({ where: { id }, data: data as any });
+    if (fatherId !== undefined || motherId !== undefined) {
+      await setFatherAndMother(id, fatherId ?? null, motherId ?? null, {
+        updateFather: fatherId !== undefined,
+        updateMother: motherId !== undefined,
+      });
+    }
     const withLeader = await prisma.family.findUnique({
       where: { id },
-      include: { leader: { select: { id: true, fullName: true, email: true } }, members: true },
+      include: {
+        leader: { select: { id: true, fullName: true, email: true } },
+        members: { select: { id: true, fullName: true, email: true, gender: true, familyRole: true, status: true, studentId: true } },
+      },
     });
     res.json(withLeader ?? family);
   } catch (err: any) {
@@ -96,7 +173,7 @@ export const deleteFamily = async (req: Request, res: Response) => {
     if (typeof id !== "string") {
       return res.status(400).json({ message: "Invalid id" });
     }
-    await prisma.member.updateMany({ where: { familyId: id }, data: { familyId: null } });
+    await prisma.member.updateMany({ where: { familyId: id }, data: { familyId: null, familyRole: null } });
     await prisma.family.delete({ where: { id } });
     res.status(204).send();
   } catch (err: any) {

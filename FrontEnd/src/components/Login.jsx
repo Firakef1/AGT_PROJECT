@@ -2,25 +2,14 @@ import React, { useState } from "react";
 import { Mail, Lock, Eye, EyeOff, Shield, ArrowRight, Loader2 } from "lucide-react";
 import logo from "../assets/mk_logo.jpeg";
 import "./Login.css";
-import DivisionSelector from "./DivisionSelector";
 import { apiFetch } from "../services/apiFetch.js";
 
-// ── Division → button label map ────────────────────────────────────────────────
-const DIVISION_BTN_LABEL = {
-  administrative: "Sign In to Admin Portal",
-  members: "Sign In to Members Management",
-  education: "Sign In to Education Portal",
-  arts: "Sign In to Arts Portal",
-};
-
-const Login = ({ onLogin }) => {
+const Login = ({ onLogin, onBackToLanding }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const [selectedDivision, setSelectedDivision] = useState("administrative");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,13 +22,12 @@ const Login = ({ onLogin }) => {
         body: JSON.stringify({ email, password }),
       });
 
-      // data contains { token, user: { id, email, role, fullName, divisionId } }
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      
+
       onLogin(data.user);
     } catch (err) {
-      setError(err.message || "Invalid credentials. Please try again.");
+      setError("Invalid email or password. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -51,8 +39,22 @@ const Login = ({ onLogin }) => {
         {/* Left Sidebar */}
         <div className="login-sidebar">
           <div className="sidebar-brand">
-            <img src={logo} alt="GubaeTech Logo" className="brand-logo" />
-            <span className="brand-name">GubaeTech</span>
+            {onBackToLanding ? (
+              <button
+                type="button"
+                className="sidebar-brand-link"
+                onClick={onBackToLanding}
+                aria-label="Return to home"
+              >
+                <img src={logo} alt="GubaeTech Logo" className="brand-logo" />
+                <span className="brand-name">GubaeTech</span>
+              </button>
+            ) : (
+              <>
+                <img src={logo} alt="GubaeTech Logo" className="brand-logo" />
+                <span className="brand-name">GubaeTech</span>
+              </>
+            )}
           </div>
 
           <div className="sidebar-content">
@@ -87,7 +89,11 @@ const Login = ({ onLogin }) => {
               <p>Please enter your leader credentials to continue.</p>
             </div>
 
-            {error && <div className="login-error" style={{ color: '#dc2626', background: '#fee2e2', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.9rem', textAlign: 'center' }}>{error}</div>}
+            {error && (
+              <div className="login-error">
+                {error}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="login-form">
               <div className="form-group">
@@ -140,17 +146,12 @@ const Login = ({ onLogin }) => {
                 </label>
               </div>
 
-              <DivisionSelector
-                value={selectedDivision}
-                onChange={setSelectedDivision}
-              />
-
               <button type="submit" className="signin-btn" disabled={isLoading}>
                 {isLoading ? (
                   <><Loader2 size={18} className="spin" /> Checking...</>
                 ) : (
                   <>
-                    {DIVISION_BTN_LABEL[selectedDivision] ?? "Sign In"}
+                    Sign In
                     <ArrowRight size={18} className="btn-arrow" />
                   </>
                 )}

@@ -85,9 +85,15 @@ const RoleTag = ({ role }) => {
  *   onClose         {function}  – called when modal should close
  *   family          {object}    – the family record being managed
  *   allMembers      {array}     – complete members list from parent state
- *   onUpdateMembers {function}  – called with (memberId, newFamilyId) to update
- *                                 a single member's familyId in the parent
+ *   onUpdateMembers {function}  – called with (memberId, newFamilyId, familyRole?)
+ *                                 to update a member's family and role
  */
+const FAMILY_ROLES = [
+  { value: "FATHER", label: "Father" },
+  { value: "MOTHER", label: "Mother" },
+  { value: "CHILD", label: "Child" },
+];
+
 const FamilyMembersManager = ({
   isOpen,
   onClose,
@@ -95,9 +101,9 @@ const FamilyMembersManager = ({
   allMembers,
   onUpdateMembers,
 }) => {
-  // Search state — reset by the parent passing a changing `key` prop on remount
   const [addSearch, setAddSearch] = useState("");
   const [removeSearch, setRemoveSearch] = useState("");
+  const [addRole, setAddRole] = useState("CHILD");
 
   // Close on Escape key
   useEffect(() => {
@@ -126,8 +132,9 @@ const FamilyMembersManager = ({
     if (!q) return currentMembers;
     return currentMembers.filter(
       (m) =>
-        m.fullName.toLowerCase().includes(q) ||
-        m.role.toLowerCase().includes(q),
+        m.fullName?.toLowerCase().includes(q) ||
+        (m.familyRole && String(m.familyRole).toLowerCase().includes(q)) ||
+        m.email?.toLowerCase().includes(q),
     );
   }, [currentMembers, removeSearch]);
 
@@ -136,9 +143,8 @@ const FamilyMembersManager = ({
     if (!q) return availableMembers;
     return availableMembers.filter(
       (m) =>
-        m.fullName.toLowerCase().includes(q) ||
-        m.role.toLowerCase().includes(q) ||
-        m.email.toLowerCase().includes(q),
+        m.fullName?.toLowerCase().includes(q) ||
+        m.email?.toLowerCase().includes(q),
     );
   }, [availableMembers, addSearch]);
 
@@ -149,14 +155,19 @@ const FamilyMembersManager = ({
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
-  /** Assign member to this family */
+  /** Assign member to this family with selected role */
   const handleAdd = (memberId) => {
-    onUpdateMembers(memberId, family.id);
+    onUpdateMembers(memberId, family.id, addRole);
   };
 
-  /** Remove member from this family (set familyId → null) */
+  /** Remove member from this family */
   const handleRemove = (memberId) => {
     onUpdateMembers(memberId, null);
+  };
+
+  /** Change a current member's family role */
+  const handleRoleChange = (memberId, newRole) => {
+    onUpdateMembers(memberId, family.id, newRole);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -314,18 +325,31 @@ const FamilyMembersManager = ({
                             flexWrap: "wrap",
                           }}
                         >
-                          <RoleTag role={m.role} />
+                          {m.familyRole && (
+                            <span
+                              style={{
+                                fontSize: "0.7rem",
+                                fontWeight: 600,
+                                color: "var(--text-secondary)",
+                                background: "var(--gray-100)",
+                                padding: "0.1rem 0.4rem",
+                                borderRadius: "4px",
+                              }}
+                            >
+                              {m.familyRole === "FATHER" ? "Father" : m.familyRole === "MOTHER" ? "Mother" : "Child"}
+                            </span>
+                          )}
                           <span
-                            className={`member-status ${m.status.toLowerCase()}`}
+                            className={`member-status ${m.status?.toLowerCase?.() ?? ""}`}
                             style={{ fontSize: "0.72rem" }}
                           >
                             <span className="status-dot-sm" />
-                            {m.status}
+                            {m.status ?? "—"}
                           </span>
                         </div>
                       </div>
 
-                      {/* Don't allow removing the leader from the group */}
+                      {/* Role dropdown (and remove unless leader) */}
                       {isLeader ? (
                         <span
                           title="Leader cannot be removed directly. Change the leader in the family settings first."
@@ -339,20 +363,38 @@ const FamilyMembersManager = ({
                           Leader
                         </span>
                       ) : (
-                        <button
-                          className="fmm-remove-btn"
-                          title={`Remove ${m.fullName} from this group`}
-                          onClick={() => handleRemove(m.id)}
-                        >
-                          <UserMinus
-                            size={13}
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0 }}>
+                          <select
+                            className="mem-form-select"
+                            value={m.familyRole || "CHILD"}
+                            onChange={(e) => handleRoleChange(m.id, e.target.value)}
+                            title="Family role"
                             style={{
-                              verticalAlign: "middle",
-                              marginRight: "0.2rem",
+                              width: "auto",
+                              minWidth: 90,
+                              padding: "0.25rem 0.4rem",
+                              fontSize: "0.75rem",
                             }}
-                          />
-                          Remove
-                        </button>
+                          >
+                            {FAMILY_ROLES.map((r) => (
+                              <option key={r.value} value={r.value}>{r.label}</option>
+                            ))}
+                          </select>
+                          <button
+                            className="fmm-remove-btn"
+                            title={`Remove ${m.fullName} from this group`}
+                            onClick={() => handleRemove(m.id)}
+                          >
+                            <UserMinus
+                              size={13}
+                              style={{
+                                verticalAlign: "middle",
+                                marginRight: "0.2rem",
+                              }}
+                            />
+                            Remove
+                          </button>
+                        </div>
                       )}
                     </div>
                   );
@@ -381,6 +423,20 @@ const FamilyMembersManager = ({
               />
               Add Members ({availableMembers.length} available)
             </p>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+              <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Role when adding:</label>
+              <select
+                className="mem-form-select"
+                value={addRole}
+                onChange={(e) => setAddRole(e.target.value)}
+                style={{ width: "auto", minWidth: 100, padding: "0.35rem 0.5rem", fontSize: "0.8rem" }}
+              >
+                {FAMILY_ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+            </div>
 
             {/* Search available members */}
             <div className="fmm-search-wrap">
@@ -443,7 +499,15 @@ const FamilyMembersManager = ({
                             flexWrap: "wrap",
                           }}
                         >
-                          <RoleTag role={m.role} />
+                          {m.status && (
+                            <span
+                              className={`member-status ${m.status?.toLowerCase?.() ?? ""}`}
+                              style={{ fontSize: "0.72rem" }}
+                            >
+                              <span className="status-dot-sm" />
+                              {m.status}
+                            </span>
+                          )}
                           {otherFamily && (
                             <span
                               style={{

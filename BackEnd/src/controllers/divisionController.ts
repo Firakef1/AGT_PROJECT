@@ -98,7 +98,7 @@ export async function deleteDivisionController(
  * POST /divisions/:id/set-leader
  * Body: { memberId: string }
  *
- * Assigns an eligible member (approved + in division ≥ 6 months) as
+ * Assigns an eligible member (approved + in division) as
  * the DIVISION_HEAD of division :id.
  */
 export async function setDivisionLeaderController(

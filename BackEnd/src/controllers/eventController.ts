@@ -144,7 +144,15 @@ export async function deleteEventController(req: Request, res: Response) {
   if (typeof id !== "string") {
     return res.status(400).json({ message: "Invalid id" });
   }
-  await deleteEvent(id);
-  return res.status(204).send();
+  try {
+    await deleteEvent(id);
+    return res.status(204).send();
+  } catch (err: unknown) {
+    const prismaErr = err as { code?: string };
+    if (prismaErr?.code === "P2025") {
+      return res.status(404).json({ message: "Event not found" });
+    }
+    throw err;
+  }
 }
 

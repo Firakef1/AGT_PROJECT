@@ -57,7 +57,7 @@ router.post("/", authorize(["ADMIN"]) as any, createDivisionController);
  * @swagger
  * /divisions/{id}/set-leader:
  *   post:
- *     summary: Set a division leader (member must be in division ≥ 6 months)
+ *     summary: Set a division leader (member must be in division)
  *     tags: [Divisions]
  *     security:
  *       - bearerAuth: []
@@ -82,7 +82,7 @@ router.post("/", authorize(["ADMIN"]) as any, createDivisionController);
  *       200:
  *         description: Leader assigned
  *       403:
- *         description: Member not eligible (less than 6 months in division)
+ *         description: Member not eligible
  *       409:
  *         description: Division already has a leader
  */

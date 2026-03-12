@@ -90,10 +90,27 @@ function App() {
   }
 
   if (!isLoggedIn) {
-    return <Login onLogin={handleLogin} />;
+    return (
+      <Login
+        onLogin={handleLogin}
+        onBackToLanding={() => setShowLanding(true)}
+      />
+    );
   }
 
-  // ── Members Division Dashboard ───────────────────────────────────────────
+  // ── Division leaders only see the Members portal (never the main admin app) ──
+  const isDivisionLeaderOnly = user?.role === "MEMBERS_MANAGER" || user?.role === "DIVISION_HEAD";
+  if (isDivisionLeaderOnly) {
+    return (
+      <MembersDivisionDashboard
+        user={user}
+        onLogout={handleLogout}
+        onNavigateToMain={null}
+      />
+    );
+  }
+
+  // ── Admin: show Members portal when they choose it, otherwise main app ─────
   if (activePage === "members-dashboard") {
     return (
       <MembersDivisionDashboard

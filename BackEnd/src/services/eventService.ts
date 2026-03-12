@@ -69,6 +69,9 @@ export async function updateEvent(
 }
 
 export async function deleteEvent(id: string) {
-  await prisma.event.delete({ where: { id } });
+  await prisma.$transaction([
+    prisma.attendance.deleteMany({ where: { eventId: id } }),
+    prisma.event.delete({ where: { id } }),
+  ]);
 }
 

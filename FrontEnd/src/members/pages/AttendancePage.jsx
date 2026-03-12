@@ -122,29 +122,29 @@ const AttendancePage = ({ user, onNavigate }) => {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 300 }}>
+      <div className="members-loading">
         <Loader2 size={32} className="spin" />
       </div>
     );
   }
 
+  const pctClass = (pct) =>
+    pct >= 70 ? "attendance-pct-high" : pct >= 40 ? "attendance-pct-mid" : "attendance-pct-low";
+
   return (
-    <div className="attendance-page" style={{ padding: "1.5rem" }}>
-      <div style={{ marginBottom: "1.5rem" }}>
-        <h1 style={{ margin: 0, fontSize: "1.5rem" }}>Attendance</h1>
-        <p style={{ margin: "0.25rem 0 0", color: "var(--text-light)", fontSize: "0.9rem" }}>
-          Track attendance by event and view participation overview for your division.
-        </p>
+    <div className="attendance-page">
+      <div className="attendance-page-header">
+        <h1>Attendance</h1>
+        <p>Track attendance by event and view participation overview for your division.</p>
       </div>
 
       {divisions.length > 0 && (
-        <div className="mem-form-group" style={{ marginBottom: "1rem" }}>
+        <div className="mem-form-group attendance-division-select-wrap">
           <label className="mem-form-label">Division</label>
           <select
             className="mem-form-select"
             value={divisionId}
             onChange={(e) => setDivisionId(e.target.value)}
-            style={{ maxWidth: 320 }}
           >
             <option value="">— Select division —</option>
             {divisions.map((d) => (
@@ -155,43 +155,45 @@ const AttendancePage = ({ user, onNavigate }) => {
       )}
 
       {participationSummary && (
-        <div style={{ marginBottom: "1.5rem", background: "var(--white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
-          <div style={{ padding: "0.75rem 1rem", background: "var(--gray-50)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <TrendingUp size={18} color="var(--blue)" />
+        <div className="attendance-participation-card">
+          <div className="attendance-participation-header">
+            <TrendingUp size={18} color="var(--blue)" aria-hidden />
             <strong>Participation overview</strong>
-            <span style={{ color: "var(--text-light)", fontSize: "0.85rem" }}>
+            <span className="attendance-participation-badge">
               ({participationSummary.totalDivisionEvents} division events)
             </span>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
-                <th style={{ textAlign: "left", padding: "0.6rem 1rem" }}>Member</th>
-                <th style={{ textAlign: "right", padding: "0.6rem 1rem" }}>Present</th>
-                <th style={{ textAlign: "right", padding: "0.6rem 1rem" }}>Participation</th>
-              </tr>
-            </thead>
-            <tbody>
-              {participationSummary.members.map((row) => (
-                <tr key={row.memberId} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "0.6rem 1rem" }}>{row.fullName} <span style={{ color: "var(--text-light)", fontSize: "0.8rem" }}>({row.email})</span></td>
-                  <td style={{ textAlign: "right", padding: "0.6rem 1rem" }}>{row.presentCount} / {row.totalEvents}</td>
-                  <td style={{ textAlign: "right", padding: "0.6rem 1rem" }}>
-                    <span style={{ color: row.participationPercentage >= 70 ? "#16a34a" : row.participationPercentage >= 40 ? "#d97706" : "#dc2626", fontWeight: 600 }}>
-                      {row.participationPercentage}%
-                    </span>
-                  </td>
+          <div className="attendance-table-wrap">
+            <table className="attendance-table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Present</th>
+                  <th>Participation</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {participationSummary.members.map((row) => (
+                  <tr key={row.memberId}>
+                    <td>{row.fullName} <span className="attendance-secondary-text">({row.email})</span></td>
+                    <td>{row.presentCount} / {row.totalEvents}</td>
+                    <td>
+                      <span className={pctClass(row.participationPercentage)}>
+                        {row.participationPercentage}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {participationSummary.members.length === 0 && (
-            <p style={{ padding: "1.5rem", textAlign: "center", color: "var(--text-light)" }}>No members in this division yet.</p>
+            <p className="attendance-empty-cell">No members in this division yet.</p>
           )}
         </div>
       )}
 
-      <div className="mem-form-group" style={{ marginBottom: "1.5rem" }}>
+      <div className="mem-form-group attendance-event-select-wrap">
         <label className="mem-form-label">Select Event</label>
         <select
           className="mem-form-select"
@@ -206,55 +208,57 @@ const AttendancePage = ({ user, onNavigate }) => {
       </div>
 
       {!divisionId ? (
-        <p style={{ color: "var(--text-light)" }}>Select a division to see events and mark attendance.</p>
+        <p className="members-hint-text">Select a division to see events and mark attendance.</p>
       ) : !selectedEventId ? (
-        <p style={{ color: "var(--text-light)" }}>Select an event to mark attendance.</p>
+        <p className="members-hint-text">Select an event to mark attendance.</p>
       ) : loadingAttendance ? (
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "var(--text-light)" }}>
-          <Loader2 size={20} className="spin" /> Loading attendance…
+        <div className="attendance-loading-row">
+          <Loader2 size={20} className="spin" aria-hidden /> Loading attendance…
         </div>
       ) : (
-        <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
-                <th style={{ textAlign: "left", padding: "0.75rem 1rem" }}>Member</th>
-                <th style={{ textAlign: "left", padding: "0.75rem 1rem" }}>Status</th>
-                <th style={{ textAlign: "left", padding: "0.75rem 1rem" }}>Mark</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m) => {
-                const status = getStatusForMember(m.id);
-                const busy = marking === m.id;
-                return (
-                  <tr key={m.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "0.75rem 1rem" }}>{m.fullName} <span style={{ color: "var(--text-light)", fontSize: "0.85rem" }}>({m.email})</span></td>
-                    <td style={{ padding: "0.75rem 1rem" }}>
-                      {status === "PRESENT" && <span style={{ color: "#16a34a" }}>Present</span>}
-                      {status === "ABSENT" && <span style={{ color: "#dc2626" }}>Absent</span>}
-                      {status === "EXCUSED" && <span style={{ color: "#d97706" }}>Excused</span>}
-                      {!status && <span style={{ color: "var(--text-light)" }}>—</span>}
-                    </td>
-                    <td style={{ padding: "0.75rem 1rem" }}>
-                      <button type="button" className="mem-modal-btn cancel" size="small" disabled={busy} onClick={() => mark(m.id, "PRESENT")}><CheckCircle size={14} /> Present</button>
-                      {" "}
-                      <button type="button" className="mem-modal-btn cancel" size="small" disabled={busy} onClick={() => mark(m.id, "ABSENT")}><XCircle size={14} /> Absent</button>
-                      {" "}
-                      <button type="button" className="mem-modal-btn cancel" size="small" disabled={busy} onClick={() => mark(m.id, "EXCUSED")}>Excused</button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="attendance-participation-card">
+          <div className="attendance-table-wrap">
+            <table className="attendance-table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Status</th>
+                  <th>Mark</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((m) => {
+                  const status = getStatusForMember(m.id);
+                  const busy = marking === m.id;
+                  return (
+                    <tr key={m.id}>
+                      <td>{m.fullName} <span className="attendance-secondary-text">({m.email})</span></td>
+                      <td>
+                        {status === "PRESENT" && <span className="attendance-status-present">Present</span>}
+                        {status === "ABSENT" && <span className="attendance-status-absent">Absent</span>}
+                        {status === "EXCUSED" && <span className="attendance-status-excused">Excused</span>}
+                        {!status && <span className="attendance-status-none">—</span>}
+                      </td>
+                      <td>
+                        <div className="attendance-mark-buttons">
+                          <button type="button" className="mem-modal-btn cancel" disabled={busy} onClick={() => mark(m.id, "PRESENT")}><CheckCircle size={14} aria-hidden /> Present</button>
+                          <button type="button" className="mem-modal-btn cancel" disabled={busy} onClick={() => mark(m.id, "ABSENT")}><XCircle size={14} aria-hidden /> Absent</button>
+                          <button type="button" className="mem-modal-btn cancel" disabled={busy} onClick={() => mark(m.id, "EXCUSED")}>Excused</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           {members.length === 0 && (
-            <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-light)" }}>No approved members to show. Approve members first from the Members page.</p>
+            <p className="attendance-empty-cell">No approved members to show. Approve members first from the Members page.</p>
           )}
         </div>
       )}
 
-      <div style={{ marginTop: "1.5rem" }}>
+      <div className="members-page-back">
         <button type="button" className="placeholder-btn-secondary" onClick={() => onNavigate("overview")}>
           <ArrowLeft size={14} /> Back to Overview
         </button>

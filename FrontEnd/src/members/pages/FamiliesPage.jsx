@@ -63,6 +63,8 @@ const FamiliesPage = () => {
         name: data.name,
         description: data.description || "",
         leaderId: data.leaderId || null,
+        fatherId: data.fatherId || null,
+        motherId: data.motherId || null,
       };
       if (isEdit) {
         await apiFetch(`/families/${data.id}`, {
@@ -103,11 +105,15 @@ const FamiliesPage = () => {
       ? families.find((f) => f.id === fmmFamily.id) ?? fmmFamily
       : fmmFamily;
 
-  const handleUpdateMemberFamily = async (memberId, familyId) => {
+  const handleUpdateMemberFamily = async (memberId, familyId, familyRole) => {
     try {
+      const body = {
+        familyId: familyId || null,
+        familyRole: familyId ? (familyRole || "CHILD") : null,
+      };
       await apiFetch(`/members/${memberId}`, {
         method: "PUT",
-        body: JSON.stringify({ familyId: familyId || null }),
+        body: JSON.stringify(body),
       });
       await fetchData();
     } catch (err) {
@@ -117,16 +123,20 @@ const FamiliesPage = () => {
 
   if (loading) {
     return (
-      <div className="families-page" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 300 }}>
-        <Loader2 size={32} className="spin" />
+      <div className="families-page">
+        <div className="members-loading">
+          <Loader2 size={32} className="spin" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="families-page" style={{ padding: "2rem", textAlign: "center", color: "var(--red)" }}>
-        <p>{error}</p>
+      <div className="families-page">
+        <div className="members-empty-state">
+          <p className="members-error-text">{error}</p>
+        </div>
       </div>
     );
   }
@@ -178,34 +188,12 @@ const FamiliesPage = () => {
       </div>
 
       {families.length === 0 ? (
-        <div
-          style={{
-            background: "var(--white)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius)",
-            padding: "3.5rem 2rem",
-            textAlign: "center",
-            boxShadow: "var(--shadow-sm)",
-          }}
-        >
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: "50%",
-              background: "#e8f0fe",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 1rem",
-            }}
-          >
-            <UsersRound size={28} color="#1a56db" />
+        <div className="families-empty-state">
+          <div className="families-empty-icon-wrap">
+            <UsersRound size={28} color="#1a56db" aria-hidden />
           </div>
-          <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "0.4rem" }}>
-            No groups yet
-          </h3>
-          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "1.25rem" }}>
+          <h3 className="families-empty-title">No groups yet</h3>
+          <p className="families-empty-desc">
             Create your first fellowship group to start organising members.
           </p>
           <button className="btn-accent" onClick={openCreate}>
@@ -244,9 +232,8 @@ const FamiliesPage = () => {
           isOpen={fmmOpen}
           onClose={() => setFmmOpen(false)}
           family={syncedFmmFamily}
-          members={members}
-          families={families}
-          onUpdateMemberFamily={handleUpdateMemberFamily}
+          allMembers={members}
+          onUpdateMembers={handleUpdateMemberFamily}
         />
       )}
 

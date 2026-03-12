@@ -134,7 +134,7 @@ router.put("/:id", authorize(["ADMIN", "DIVISION_HEAD"]), updateEventController)
  *       204:
  *         description: Event deleted
  */
-router.delete("/:id", authorize(["ADMIN"]), deleteEventController);
+router.delete("/:id", authorize(["ADMIN", "DIVISION_HEAD"]), deleteEventController);
 
 export default router;
 

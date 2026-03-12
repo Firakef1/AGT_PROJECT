@@ -53,7 +53,7 @@ export async function meController(req: Request, res: Response) {
   }
   const user = await getCurrentUser(authReq.user.id);
   if (!user) {
-    return res.status(401).json({ message: "User not found" });
+    return res.status(401).json({ message: "Unauthorized" });
   }
   return res.json(user);
 }

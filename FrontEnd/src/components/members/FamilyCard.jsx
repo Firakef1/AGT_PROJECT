@@ -51,6 +51,10 @@ const FamilyCard = ({ family, members, onEdit, onDelete, onManageMembers }) => {
   const leader = leaderFromApi || leaderFromList;
   const leaderName  = leader ? (leader.fullName ?? "Leader") : "No leader assigned";
 
+  // Father / Mother from family.members (API includes members with familyRole)
+  const father = family.members?.find((m) => m.familyRole === "FATHER");
+  const mother = family.members?.find((m) => m.familyRole === "MOTHER");
+
   // Leader avatar style
   const leaderStyle = leader ? getAvatarStyle(leader.id) : { color: "#6b7280", bg: "#f3f4f6" };
   const leaderInitials = leader ? getInitials(leader.fullName) : "—";
@@ -104,6 +108,20 @@ const FamilyCard = ({ family, members, onEdit, onDelete, onManageMembers }) => {
                 {leaderName}
               </span>
             </div>
+            {/* Father / Mother */}
+            {(father || mother) && (
+              <div
+                style={{
+                  fontSize: "0.75rem",
+                  color: "var(--text-secondary)",
+                  marginTop: "0.25rem",
+                }}
+              >
+                {father && <span>Father: {father.fullName}</span>}
+                {father && mother && " · "}
+                {mother && <span>Mother: {mother.fullName}</span>}
+              </div>
+            )}
           </div>
         </div>
 

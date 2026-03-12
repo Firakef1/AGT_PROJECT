@@ -156,7 +156,6 @@ export async function assignMemberToDivision(
  * Rules:
  *   - Member must be APPROVED and have a user account
  *   - Member must currently belong to that exact division
- *   - Member must have been in that division for at least 6 months
  *   - Division must not already have a leader
  */
 export async function assignDivisionLeader(memberId: string, divisionId: string) {
@@ -175,36 +174,6 @@ export async function assignDivisionLeader(memberId: string, divisionId: string)
       400,
       "Member does not belong to this division. Assign them first.",
     );
-
-  // 6-month eligibility check
-  if (!member.divisionJoinedAt) {
-    throw new AppError(
-      403,
-      "Member must be in this division for at least 6 months to become a leader.",
-    );
-  }
-
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-  if (member.divisionJoinedAt > sixMonthsAgo) {
-    const joinedDate = member.divisionJoinedAt.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    const eligibleDate = new Date(member.divisionJoinedAt);
-    eligibleDate.setMonth(eligibleDate.getMonth() + 6);
-    const eligibleDateStr = eligibleDate.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    throw new AppError(
-      403,
-      `Member joined this division on ${joinedDate} and will be eligible for leadership on ${eligibleDateStr} (6-month minimum required).`,
-    );
-  }
 
   // Division must not already have a leader
   const existingLeader = await prisma.user.findFirst({
@@ -229,6 +198,11 @@ export async function assignDivisionLeader(memberId: string, divisionId: string)
   });
 }
 
+/**
+ * Update a member. A member can only belong to one family (one familyId); assigning
+ * them to a new family (as child or parent) moves them. Admin / division leader can
+ * change a child's family or add a child to a family when deemed needed.
+ */
 export async function updateMember(
   id: string,
   data: Partial<{
@@ -238,6 +212,7 @@ export async function updateMember(
     gender?: string | null;
     divisionId?: string | null;
     familyId?: string | null;
+    familyRole?: string | null;
     section?: number | null;
     language?: "AFAN_OROMO" | "AMHARIC" | "BOTH" | null;
   }>,
@@ -246,6 +221,7 @@ export async function updateMember(
   if (!member) throw new AppError(404, "Member not found.");
   const updateData: Record<string, unknown> = { ...data };
   if (updateData.familyId === "") updateData.familyId = null;
+  if (updateData.familyRole === "") updateData.familyRole = null;
   return prisma.member.update({ where: { id }, data: updateData as any });
 }
 

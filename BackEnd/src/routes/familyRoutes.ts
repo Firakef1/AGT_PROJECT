@@ -13,9 +13,9 @@ const router = Router();
 router.use(authenticate);
 
 router.get("/", getFamilies);
-router.post("/", authorize(["ADMIN", "DIVISION_HEAD"]), createFamily);
-router.put("/:id", authorize(["ADMIN", "DIVISION_HEAD"]), updateFamily);
-router.delete("/:id", authorize(["ADMIN", "DIVISION_HEAD"]), deleteFamily);
-router.post("/auto-distribute", authorize(["ADMIN", "DIVISION_HEAD"]), autoDistributeMembers);
+router.post("/", authorize(["ADMIN", "DIVISION_HEAD", "MEMBERS_MANAGER"]), createFamily);
+router.put("/:id", authorize(["ADMIN", "DIVISION_HEAD", "MEMBERS_MANAGER"]), updateFamily);
+router.delete("/:id", authorize(["ADMIN", "DIVISION_HEAD", "MEMBERS_MANAGER"]), deleteFamily);
+router.post("/auto-distribute", authorize(["ADMIN", "DIVISION_HEAD", "MEMBERS_MANAGER"]), autoDistributeMembers);
 
 export default router;

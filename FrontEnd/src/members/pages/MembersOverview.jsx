@@ -51,8 +51,8 @@ const MembersOverview = ({ user, onNavigate }) => {
   }, []);
 
   if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-      <Loader2 className="spin" size={32} />
+    <div className="members-loading">
+      <Loader2 className="spin" size={32} aria-hidden />
     </div>
   );
 

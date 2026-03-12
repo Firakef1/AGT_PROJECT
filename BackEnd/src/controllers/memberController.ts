@@ -31,6 +31,7 @@ const memberUpdateSchema = z.object({
   gender: z.enum(["MALE", "FEMALE"]).optional().nullable(),
   divisionId: z.string().uuid().optional().nullable().or(z.literal("")),
   familyId: z.string().uuid().optional().nullable().or(z.literal("")),
+  familyRole: z.enum(["FATHER", "MOTHER", "CHILD"]).optional().nullable().or(z.literal("")),
   section: z.number().int().optional().nullable(),
   language: z.enum(["AFAN_OROMO", "AMHARIC", "BOTH"]).optional().nullable(),
 });

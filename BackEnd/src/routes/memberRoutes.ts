@@ -104,7 +104,7 @@ router.post(
  * @swagger
  * /members/{id}/assign-leader:
  *   post:
- *     summary: Assign member as a division leader (requires 6 months in division)
+ *     summary: Assign member as a division leader
  *     tags: [Members]
  *     security:
  *       - bearerAuth: []

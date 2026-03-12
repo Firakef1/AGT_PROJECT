@@ -17,6 +17,10 @@ export const env = {
   adminEmail: process.env.ADMIN_EMAIL || "admin@gubaetech.local",
   adminPassword: process.env.ADMIN_PASSWORD || "ChangeMe123!",
   adminFullName: process.env.ADMIN_FULL_NAME || "Gubae Admin",
+  // Members Division leader (seeded so you can log in as division leader)
+  membersLeadEmail: process.env.MEMBERS_LEAD_EMAIL || "members-lead@gubaetech.local",
+  membersLeadPassword: process.env.MEMBERS_LEAD_PASSWORD || "MembersLead123!",
+  membersLeadFullName: process.env.MEMBERS_LEAD_FULL_NAME || "Members Division Lead",
 };
 
 if (nodeEnv === "production") {
