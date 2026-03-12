@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  getDivisionAttendanceSummaryController,
   getEventAttendanceController,
   getMemberAttendanceSummaryController,
   markAttendanceController,
@@ -78,6 +79,29 @@ router.get("/event/:eventId", getEventAttendanceController);
  *         description: Attendance summary including participation percentage
  */
 router.get("/member/:memberId/summary", getMemberAttendanceSummaryController);
+
+/**
+ * @swagger
+ * /attendance/division/{divisionId}/summary:
+ *   get:
+ *     summary: Get participation overview for a division (per-member attendance stats)
+ *     tags: [Attendance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: divisionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: totalDivisionEvents and members with presentCount, participationPercentage
+ */
+router.get(
+  "/division/:divisionId/summary",
+  getDivisionAttendanceSummaryController,
+);
 
 export default router;
 

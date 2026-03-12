@@ -16,7 +16,9 @@ import {
   Eye,
   Pencil,
   Trash2,
+  Loader2
 } from "lucide-react";
+import { apiFetch } from "../services/apiFetch.js";
 
 // ── Icon / style per division ─────────────────────────────────────────────────
 const DIVISION_META = {
@@ -30,7 +32,7 @@ const ROWS_PER_PAGE = 5;
 const EMPTY_FORM = {
   name: "",
   quantity: "",
-  division: "Audio/Visual",
+  division: "Audio/Visual", // Note: The backend schema doesn't have a division or status field directly yet, mapped to description/location for now
   status: "instock",
 };
 
@@ -41,145 +43,15 @@ const todayStr = () =>
     year: "numeric",
   });
 
-// ── Seed data (12 items so pagination is real) ────────────────────────────────
-const seedItems = [
-  {
-    id: 1,
-    name: "Wireless Microphone System",
-    quantity: "4 units",
-    division: "Audio/Visual",
-    updated: "Oct 12, 2023",
-    status: "instock",
-    icon: Mic,
-    iconBg: "#f3e8ff",
-    iconColor: "#7c3aed",
-  },
-  {
-    id: 2,
-    name: "Amharic Hymnals",
-    quantity: "12 copies",
-    division: "Literature",
-    updated: "Oct 24, 2023",
-    status: "lowstock",
-    icon: BookOpen,
-    iconBg: "#fef2f2",
-    iconColor: "#dc2626",
-  },
-  {
-    id: 3,
-    name: "Live Stream Camera (Sony A7)",
-    quantity: "2 units",
-    division: "Audio/Visual",
-    updated: "Sep 15, 2023",
-    status: "instock",
-    icon: Camera,
-    iconBg: "#e8f0fe",
-    iconColor: "#1a56db",
-  },
-  {
-    id: 4,
-    name: "Disposable Communion Cups",
-    quantity: "1,000+",
-    division: "Kitchen",
-    updated: "Oct 28, 2023",
-    status: "instock",
-    icon: GlassWater,
-    iconBg: "#e8f0fe",
-    iconColor: "#1a56db",
-  },
-  {
-    id: 5,
-    name: "Stage Flood Light Bulbs",
-    quantity: "3 units",
-    division: "Audio/Visual",
-    updated: "Oct 05, 2023",
-    status: "lowstock",
-    icon: Lightbulb,
-    iconBg: "#fef2f2",
-    iconColor: "#dc2626",
-  },
-  {
-    id: 6,
-    name: "Portable PA System",
-    quantity: "1 unit",
-    division: "Audio/Visual",
-    updated: "Nov 01, 2023",
-    status: "instock",
-    icon: Monitor,
-    iconBg: "#f3e8ff",
-    iconColor: "#7c3aed",
-  },
-  {
-    id: 7,
-    name: "Bible Study Guides",
-    quantity: "45 copies",
-    division: "Literature",
-    updated: "Oct 20, 2023",
-    status: "instock",
-    icon: BookMarked,
-    iconBg: "#e8f0fe",
-    iconColor: "#1a56db",
-  },
-  {
-    id: 8,
-    name: "Offering Plates",
-    quantity: "8 units",
-    division: "Kitchen",
-    updated: "Sep 30, 2023",
-    status: "instock",
-    icon: GlassWater,
-    iconBg: "#e8f5e9",
-    iconColor: "#16a34a",
-  },
-  {
-    id: 9,
-    name: "Projector Screen",
-    quantity: "2 units",
-    division: "Audio/Visual",
-    updated: "Nov 05, 2023",
-    status: "instock",
-    icon: Monitor,
-    iconBg: "#e8f0fe",
-    iconColor: "#1a56db",
-  },
-  {
-    id: 10,
-    name: "English Bibles",
-    quantity: "6 copies",
-    division: "Literature",
-    updated: "Oct 15, 2023",
-    status: "lowstock",
-    icon: BookOpen,
-    iconBg: "#fff3cd",
-    iconColor: "#d97706",
-  },
-  {
-    id: 11,
-    name: "Lapel Microphones",
-    quantity: "2 units",
-    division: "Audio/Visual",
-    updated: "Oct 10, 2023",
-    status: "lowstock",
-    icon: Mic,
-    iconBg: "#fef2f2",
-    iconColor: "#dc2626",
-  },
-  {
-    id: 12,
-    name: "Sound Mixer Board",
-    quantity: "1 unit",
-    division: "Audio/Visual",
-    updated: "Nov 08, 2023",
-    status: "instock",
-    icon: Mic,
-    iconBg: "#f3e8ff",
-    iconColor: "#7c3aed",
-  },
-];
+
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const Inventory = () => {
-  const [items, setItems] = useState(seedItems);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [activeTab, setActiveTab] = useState("All Items");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -188,6 +60,37 @@ const Inventory = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [editId, setEditId] = useState(null);
   const [formError, setFormError] = useState("");
+
+  const fetchItems = async () => {
+    try {
+      setLoading(true);
+      const data = await apiFetch("/inventory");
+      // Map backend fields to frontend expected fields where necessary
+        const mapped = data.map(item => {
+          const divMeta = DIVISION_META[item.location] || DIVISION_META["Audio/Visual"];
+          return {
+            ...item,
+            division: item.location || "Audio/Visual",
+            status: "instock",
+            quantity: item.quantity.toString(),
+            icon: divMeta.icon,
+            iconBg: divMeta.iconBg,
+            iconColor: divMeta.iconColor,
+            updated: item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : todayStr()
+          };
+        });
+        setItems(mapped);
+      } catch (err) {
+      console.error("Failed to load inventory:", err);
+      setError("Failed to load inventory");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
 
   // view modal
   const [viewItem, setViewItem] = useState(null);
@@ -227,7 +130,8 @@ const Inventory = () => {
 
   // ── Dynamic stat values ──
   const totalCount = items.length;
-  const lowStockCount = items.filter((i) => i.status === "lowstock").length;
+  // Fallback values for charts/stats since we don't have these fields strictly in db yet
+  const lowStockCount = items.filter((i) => parseInt(i.quantity) < 5).length;
   const avCount = items.filter((i) => i.division === "Audio/Visual").length;
   const litCount = items.filter((i) => i.division === "Literature").length;
 
@@ -270,31 +174,41 @@ const Inventory = () => {
     if (formError) setFormError("");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.name.trim()) {
       setFormError("Item name is required.");
       return;
     }
-    const meta = DIVISION_META[form.division] ?? DIVISION_META["Audio/Visual"];
-    const updated = todayStr();
-    const entry = {
-      id: editId ?? Date.now(),
+
+    const payload = {
       name: form.name.trim(),
-      quantity: form.quantity.trim() || "—",
-      division: form.division,
-      status: form.status,
-      updated,
-      icon: meta.icon,
-      iconBg: meta.iconBg,
-      iconColor: meta.iconColor,
+      quantity: parseInt(form.quantity) || 0,
+      location: form.division,
+      description: `Status: ${form.status}`,
     };
-    if (editId !== null) {
-      setItems((prev) => prev.map((i) => (i.id === editId ? entry : i)));
-    } else {
-      setItems((prev) => [...prev, entry]);
-      setCurrentPage(1);
+
+    setIsSubmitting(true);
+    try {
+      if (editId !== null) {
+        await apiFetch(`/inventory/${editId}`, {
+          method: "PUT",
+          body: JSON.stringify(payload)
+        });
+      } else {
+        await apiFetch("/inventory", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+      }
+      
+      await fetchItems();
+      closeModal();
+    } catch (err) {
+      console.error("Failed to save item:", err);
+      setFormError(err.message || "Failed to save item");
+    } finally {
+      setIsSubmitting(false);
     }
-    closeModal();
   };
 
   // ── View modal ──
@@ -304,10 +218,17 @@ const Inventory = () => {
   };
 
   // ── Remove ──
-  const handleRemove = (id) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    setActionMenu(null);
-    setCurrentPage(1);
+  const handleRemove = async (id) => {
+    try {
+      await apiFetch(`/inventory/${id}`, { method: "DELETE" });
+      await fetchItems();
+    } catch (err) {
+      console.error("Failed to delete item:", err);
+      alert(err.message || "Failed to delete item");
+    } finally {
+      setActionMenu(null);
+      setCurrentPage(1);
+    }
   };
 
   // ── Export CSV ──
@@ -318,7 +239,7 @@ const Inventory = () => {
         i.name,
         i.quantity,
         i.division,
-        i.updated,
+        i.updatedAt ? new Date(i.updatedAt).toLocaleDateString() : todayStr(),
         i.status === "instock" ? "In Stock" : "Low Stock",
       ].join(","),
     );
@@ -331,6 +252,9 @@ const Inventory = () => {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  if (loading) return <div className="page-v2 flex-center"><Loader2 className="spin" size={48} /></div>;
+  if (error) return <div className="page-v2 flex-center"><p className="text-red-500">{error}</p></div>;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -424,8 +348,9 @@ const Inventory = () => {
                 </tr>
               ) : (
                 paginated.map((item) => {
-                  const Icon = item.icon;
-                  const isLow = item.status === "lowstock";
+                  const meta = DIVISION_META[item.division] || DIVISION_META["Audio/Visual"];
+                  const Icon = meta.icon;
+                  const isLow = parseInt(item.quantity) < 5;
                   const qtyStyle = isLow
                     ? { color: "#dc2626", fontWeight: 600 }
                     : { color: "inherit" };
@@ -437,9 +362,9 @@ const Inventory = () => {
                         <div className="name-with-icon">
                           <div
                             className="item-icon-sm"
-                            style={{ background: item.iconBg }}
+                            style={{ background: meta.iconBg }}
                           >
-                            <Icon size={14} color={item.iconColor} />
+                            <Icon size={14} color={meta.iconColor} />
                           </div>
                           <strong
                             style={{
@@ -459,12 +384,14 @@ const Inventory = () => {
                       <td>{item.division}</td>
 
                       {/* Last updated */}
-                      <td style={{ whiteSpace: "nowrap" }}>{item.updated}</td>
+                      <td style={{ whiteSpace: "nowrap" }}>
+                        {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : todayStr()}
+                      </td>
 
                       {/* Status */}
                       <td>
-                        <span className={`inv-status-badge ${item.status}`}>
-                          {item.status === "instock" ? "IN STOCK" : "LOW STOCK"}
+                        <span className={`inv-status-badge ${isLow ? 'lowstock' : 'instock'}`}>
+                          {isLow ? "LOW STOCK" : "IN STOCK"}
                         </span>
                       </td>
 

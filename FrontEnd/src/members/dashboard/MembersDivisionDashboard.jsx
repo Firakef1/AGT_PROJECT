@@ -20,48 +20,58 @@ import "../members-dashboard.css";
  *   onNavigateToMain {function} – returns the user to the main Administrative
  *                                 portal (sets App.jsx activePage → "dashboard")
  */
-const MembersDivisionDashboard = ({ onLogout, onNavigateToMain }) => {
-  const [activePage, setActivePage] = useState("overview");
+const MembersDivisionDashboard = ({ user, onLogout, onNavigateToMain }) => {
+  const [history, setHistory] = useState(["overview"]);
+  const activePage = history[history.length - 1];
 
-  // ── Page renderer ─────────────────────────────────────────────────────────
+  const navigateTo = (page) => {
+    setHistory((prev) => [...prev, page]);
+  };
+
+  const goBack = () => {
+    setHistory((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev));
+  };
+
+  const canGoBack = history.length > 1;
+
   const renderPage = () => {
     switch (activePage) {
       case "overview":
-        return <MembersOverview onNavigate={setActivePage} />;
+        return <MembersOverview user={user} onNavigate={navigateTo} />;
 
-      // Embed the existing Members management component as-is.
-      // It already ships with its own Members + Families tab navigation,
-      // search, add/edit/delete, and CSV export — nothing is rewritten.
       case "members":
         return (
           <div className="members-page-host">
-            <Members />
+            <Members user={user} />
           </div>
         );
 
       case "families":
-        return <FamiliesPage />;
+        return <FamiliesPage onNavigate={navigateTo} />;
 
       case "attendance":
-        return <AttendancePage onNavigate={setActivePage} />;
+        return <AttendancePage user={user} onNavigate={navigateTo} />;
 
       case "events":
-        return <EventsPage onNavigate={setActivePage} />;
+        return <EventsPage user={user} onNavigate={navigateTo} />;
 
       case "notifications":
-        return <NotificationsPage onNavigate={setActivePage} />;
+        return <NotificationsPage onNavigate={navigateTo} />;
 
       default:
-        return <MembersOverview onNavigate={setActivePage} />;
+        return <MembersOverview user={user} onNavigate={navigateTo} />;
     }
   };
 
   return (
     <MembersLayout
+      user={user}
       activePage={activePage}
-      setActivePage={setActivePage}
+      setActivePage={navigateTo}
       onLogout={onLogout}
       onNavigateToMain={onNavigateToMain}
+      onBack={goBack}
+      canGoBack={canGoBack}
     >
       {renderPage()}
     </MembersLayout>

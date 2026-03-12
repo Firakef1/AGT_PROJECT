@@ -16,17 +16,19 @@ import MembersTopbar from "./MembersTopbar";
  *   children         {node}     – the active page component rendered in the content area
  */
 const MembersLayout = ({
+  user,
   activePage,
   setActivePage,
   onLogout,
   onNavigateToMain,
+  onBack,
+  canGoBack,
   children,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div className="members-app">
-      {/* ── Left sidebar ── */}
       <MembersSidebar
         activePage={activePage}
         setActivePage={setActivePage}
@@ -36,11 +38,13 @@ const MembersLayout = ({
         onNavigateToMain={onNavigateToMain}
       />
 
-      {/* ── Right: topbar + scrollable content ── */}
       <div className="members-main-content">
         <MembersTopbar
+          user={user}
           activePage={activePage}
           onLogout={onLogout}
+          onBack={onBack}
+          canGoBack={canGoBack}
         />
 
         <main className="members-page-content">

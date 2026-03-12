@@ -41,7 +41,7 @@ if (clientID && clientSecret) {
           user = await prisma.user.create({
             data: {
               email,
-              password: "", // not used for Google accounts
+              password: null,
               fullName,
               googleId: profile.id,
             },

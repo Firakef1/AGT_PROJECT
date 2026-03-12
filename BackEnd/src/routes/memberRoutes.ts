@@ -1,55 +1,31 @@
 import { Router } from "express";
 import {
-  createMemberController,
+  approveMemberController,
   deleteMemberController,
   listMembersController,
+  registerMemberController,
+  rejectMemberController,
   updateMemberController,
+  assignDivisionLeaderController,
+  assignMemberToDivisionController,
 } from "../controllers/memberController";
 import { authenticate, authorize } from "../middleware/authMiddleware";
 
 const router = Router();
 
-router.use(authenticate);
-
 /**
  * @swagger
- * /members:
- *   get:
- *     summary: List members
- *     tags: [Members]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: divisionId
- *         schema:
- *           type: string
- *         description: Filter by division ID
- *     responses:
- *       200:
- *         description: List of members
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
- */
-router.get("/", authorize(["ADMIN", "DIVISION_HEAD"]), listMembersController);
-
-/**
- * @swagger
- * /members:
+ * /members/register:
  *   post:
- *     summary: Create a member
+ *     summary: Register a new member (Public)
  *     tags: [Members]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [studentId, fullName, email, divisionId]
+ *             required: [studentId, fullName, email]
  *             properties:
  *               studentId:
  *                 type: string
@@ -63,68 +39,127 @@ router.get("/", authorize(["ADMIN", "DIVISION_HEAD"]), listMembersController);
  *                 type: string
  *     responses:
  *       201:
- *         description: Member created
- *       400:
- *         description: Invalid input
+ *         description: Registration submitted
  */
-router.post("/", authorize(["ADMIN", "DIVISION_HEAD"]), createMemberController);
+router.post("/register", registerMemberController);
+
+// Authenticated routes below this point
+router.use(authenticate as any);
 
 /**
  * @swagger
- * /members/{id}:
- *   put:
- *     summary: Update a member
+ * /members:
+ *   get:
+ *     summary: List members
  *     tags: [Members]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
+ *       - in: query
+ *         name: status
  *         schema:
  *           type: string
+ *           enum: [PENDING, APPROVED, REJECTED]
+ *     responses:
+ *       200:
+ *         description: List of members
+ */
+router.get(
+  "/",
+  authorize(["ADMIN", "MEMBERS_MANAGER", "DIVISION_HEAD"]) as any,
+  listMembersController,
+);
+
+/**
+ * @swagger
+ * /members/{id}/approve:
+ *   post:
+ *     summary: Approve a pending member (sends email with temp password)
+ *     tags: [Members]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post(
+  "/:id/approve",
+  authorize(["ADMIN", "MEMBERS_MANAGER"]) as any,
+  approveMemberController,
+);
+
+/**
+ * @swagger
+ * /members/{id}/reject:
+ *   post:
+ *     summary: Reject a pending member (sends rejection email)
+ *     tags: [Members]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post(
+  "/:id/reject",
+  authorize(["ADMIN", "MEMBERS_MANAGER"]) as any,
+  rejectMemberController,
+);
+
+/**
+ * @swagger
+ * /members/{id}/assign-leader:
+ *   post:
+ *     summary: Assign member as a division leader
+ *     tags: [Members]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [divisionId]
  *             properties:
- *               fullName:
- *                 type: string
- *               email:
- *                 type: string
- *               phone:
- *                 type: string
  *               divisionId:
  *                 type: string
- *     responses:
- *       200:
- *         description: Member updated
- *       400:
- *         description: Invalid input
+ *                 format: uuid
  */
-router.put("/:id", authorize(["ADMIN", "DIVISION_HEAD"]), updateMemberController);
+router.post(
+  "/:id/assign-leader",
+  authorize(["ADMIN"]) as any,
+  assignDivisionLeaderController,
+);
 
 /**
  * @swagger
- * /members/{id}:
- *   delete:
- *     summary: Delete a member
+ * /members/{id}/division:
+ *   put:
+ *     summary: Assign or unassign a member to/from a division
  *     tags: [Members]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       204:
- *         description: Member deleted
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [divisionId]
+ *             properties:
+ *               divisionId:
+ *                 type: string
+ *                 format: uuid
+ *                 nullable: true
+ *                 description: UUID to assign, null to unassign
  */
-router.delete("/:id", authorize(["ADMIN"]), deleteMemberController);
+router.put(
+  "/:id/division",
+  authorize(["ADMIN", "MEMBERS_MANAGER"]) as any,
+  assignMemberToDivisionController,
+);
+
+router.put(
+  "/:id",
+  authorize(["ADMIN", "MEMBERS_MANAGER", "DIVISION_HEAD"]) as any,
+  updateMemberController,
+);
+
+router.delete("/:id", authorize(["ADMIN"]) as any, deleteMemberController);
 
 export default router;
-

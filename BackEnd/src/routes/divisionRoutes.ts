@@ -4,18 +4,19 @@ import {
   deleteDivisionController,
   listDivisionsController,
   updateDivisionController,
+  setDivisionLeaderController,
 } from "../controllers/divisionController";
 import { authenticate, authorize } from "../middleware/authMiddleware";
 
 const router = Router();
 
-router.use(authenticate, authorize(["ADMIN"]));
+router.use(authenticate as any);
 
 /**
  * @swagger
  * /divisions:
  *   get:
- *     summary: List all divisions
+ *     summary: List all divisions (ADMIN, MEMBERS_MANAGER, DIVISION_HEAD)
  *     tags: [Divisions]
  *     security:
  *       - bearerAuth: []
@@ -23,7 +24,10 @@ router.use(authenticate, authorize(["ADMIN"]));
  *       200:
  *         description: List of divisions
  */
-router.get("/", listDivisionsController);
+router.get("/", authorize(["ADMIN", "MEMBERS_MANAGER", "DIVISION_HEAD"]) as any, listDivisionsController);
+
+// Create/update/delete/set-leader require ADMIN only
+router.post("/", authorize(["ADMIN"]) as any, createDivisionController);
 
 /**
  * @swagger
@@ -49,13 +53,11 @@ router.get("/", listDivisionsController);
  *       201:
  *         description: Division created
  */
-router.post("/", createDivisionController);
-
 /**
  * @swagger
- * /divisions/{id}:
- *   put:
- *     summary: Update a division
+ * /divisions/{id}/set-leader:
+ *   post:
+ *     summary: Set a division leader (member must be in division)
  *     tags: [Divisions]
  *     security:
  *       - bearerAuth: []
@@ -71,16 +73,31 @@ router.post("/", createDivisionController);
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [memberId]
  *             properties:
- *               name:
+ *               memberId:
  *                 type: string
- *               description:
- *                 type: string
+ *                 format: uuid
  *     responses:
  *       200:
- *         description: Division updated
+ *         description: Leader assigned
+ *       403:
+ *         description: Member not eligible
+ *       409:
+ *         description: Division already has a leader
  */
-router.put("/:id", updateDivisionController);
+router.post("/:id/set-leader", authorize(["ADMIN"]) as any, setDivisionLeaderController);
+
+/**
+ * @swagger
+ * /divisions/{id}:
+ *   put:
+ *     summary: Update a division
+ *     tags: [Divisions]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.put("/:id", authorize(["ADMIN"]) as any, updateDivisionController);
 
 /**
  * @swagger
@@ -90,17 +107,7 @@ router.put("/:id", updateDivisionController);
  *     tags: [Divisions]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       204:
- *         description: Division deleted
  */
-router.delete("/:id", deleteDivisionController);
+router.delete("/:id", authorize(["ADMIN"]) as any, deleteDivisionController);
 
 export default router;
-

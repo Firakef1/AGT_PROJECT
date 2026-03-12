@@ -1,62 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './LandingPage.css';
-import { Plus, Heart, Cpu, Share2, Mail, Menu, X, ArrowRight } from 'lucide-react';
+import { Plus, Heart, Cpu, Share2, Mail, Menu, X, ArrowRight, Loader2 } from 'lucide-react';
 import RegistrationModal from './RegistrationModal';
 import EventDetailsModal from './EventDetailsModal';
 
 import heroVideo from '../assets/30TH.mp4';
-import hackathonImg from '../assets/hackaton kick off.jpg';
-import welcomeSpecialNeedsImg from '../assets/welcome for new division members.jpg';
-import welcomeCharityImg from '../assets/welcome for new charity division members.jpg';
 import mkLogo from '../assets/mk_logo.jpeg';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+
+function mapApiEventToDisplay(apiEvent) {
+  const start = apiEvent.startTime ? new Date(apiEvent.startTime) : new Date();
+  const monthNames = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  return {
+    id: apiEvent.id,
+    image: null,
+    month: monthNames[start.getMonth()],
+    day: String(start.getDate()).padStart(2, '0'),
+    fullDate: start.toLocaleDateString('en-US', { dateStyle: 'long' }),
+    time: apiEvent.endTime ? `${new Date(apiEvent.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${new Date(apiEvent.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : (new Date(apiEvent.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || ''),
+    location: apiEvent.location || 'TBA',
+    title: apiEvent.title,
+    description: apiEvent.description || '',
+    highlights: [],
+  };
+}
 
 const LogoIcon = () => (
   <img src={mkLogo} alt="GubaeTech Logo" className="logo-img" />
 );
 
-const eventsData = [
-  {
-    id: 1,
-    image: hackathonImg,
-    month: 'FEB',
-    day: '28',
-    fullDate: 'February 28',
-    time: 'A week-long event',
-    location: 'AGT HUB',
-    title: 'AGT HUB Hackathon',
-    description: 'Our Talent for Our Church — Innovation · Faith · Technology. A week-long hackathon with guest judges where participants design and build Systems, Websites, and Mobile Apps. Everyone is welcome to join this exciting challenge!',
-    highlights: ['Design Systems', 'Build Websites', 'Mobile Apps', 'Guest Judges', 'Everyone Welcome'],
-  },
-  {
-    id: 2,
-    image: welcomeSpecialNeedsImg,
-    month: 'MAR',
-    day: '05',
-    fullDate: 'Yekatit 27 — March 5',
-    time: '8:30 PM (Local Time)',
-    location: 'St. Teklehaimanot Church',
-    title: '1st Year Special Needs Welcome',
-    description: 'A special welcome program organized for 1st-year students. This event is a unique night featuring a wide array of activities to help new members feel at home in the fellowship community.',
-    highlights: ['Games', 'Films', 'Songs', 'Agape', 'Poems', 'Begena Songs', 'Teachings'],
-  },
-  {
-    id: 3,
-    image: welcomeCharityImg,
-    month: 'MAR',
-    day: '04',
-    fullDate: 'Yekatit 26 — March 4',
-    time: '1:30 PM (Local Time)',
-    location: 'St. Teklehaimanot Church',
-    title: 'Charity Division Welcome',
-    description: 'A Profession & Charity overnight welcome program dedicated to 1st-year students. Join us for a night full of spiritual and educational activities designed to introduce you to the Charity Division community.',
-    highlights: ['Teachings', 'Experience Sharing', 'Agape', 'Drama', 'Begena Songs', 'Games'],
-  },
-];
-
 const LandingPage = ({ onLogin }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [eventsData, setEventsData] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/events/public`)
+      .then((res) => res.ok ? res.json() : [])
+      .then((list) => setEventsData((list || []).map(mapApiEventToDisplay)))
+      .catch(() => setEventsData([]))
+      .finally(() => setEventsLoading(false));
+  }, []);
 
   const closeMobileNav = () => setIsMobileNavOpen(false);
 
@@ -178,10 +165,21 @@ const LandingPage = ({ onLogin }) => {
           </div>
 
           <div className="events-grid">
-            {eventsData.map((event) => (
+            {eventsLoading ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
+                <Loader2 size={32} className="spin" style={{ display: 'inline-block', marginBottom: '0.5rem' }} />
+                <p>Loading upcoming events…</p>
+              </div>
+            ) : eventsData.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-light)', padding: '2rem' }}>No upcoming events at the moment. Check back later.</p>
+            ) : eventsData.map((event) => (
               <div className="event-card" key={event.id}>
                 <div className="event-image-wrapper">
-                  <img src={event.image} alt={event.title} className="event-image" />
+                  {event.image ? (
+                    <img src={event.image} alt={event.title} className="event-image" />
+                  ) : (
+                    <div className="event-image event-image-placeholder" style={{ background: 'linear-gradient(135deg, #1a56db 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '2rem', fontWeight: 700 }}>{event.title?.charAt(0) || '?'}</div>
+                  )}
                   <div className="event-date-badge">
                     <span className="event-month">{event.month}</span>
                     <span className="event-day">{event.day}</span>

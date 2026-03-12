@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import {
   loginController,
+  meController,
   registerController,
 } from "../controllers/authController";
 import { authenticate, authorize } from "../middleware/authMiddleware";
@@ -32,7 +33,7 @@ const router = Router();
  *                 type: string
  *               role:
  *                 type: string
- *                 enum: [ADMIN, DIVISION_HEAD, MEMBER]
+ *                 enum: [ADMIN, MEMBERS_MANAGER, DIVISION_HEAD, MEMBER]
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -78,6 +79,22 @@ router.post("/login", loginController);
 
 /**
  * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current user (with member and division for division scoping)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user with member.divisionId and member.division
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/me", authenticate, meController);
+
+/**
+ * @swagger
  * /auth/google:
  *   get:
  *     summary: Redirect to Google for OAuth login
@@ -107,7 +124,7 @@ router.get(
     passport.authenticate(
       "google",
       { session: false },
-      (err, result: any) => {
+      (err: unknown, result: { user: unknown; token: string } | undefined) => {
         if (err || !result) {
           return res.status(401).json({ message: "Google authentication failed" });
         }

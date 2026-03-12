@@ -7,24 +7,40 @@ export async function createEvent(data: {
   endTime: Date;
   location?: string;
   divisionId?: string;
+  expectedFamilyIds?: string[];
 }) {
-  return prisma.event.create({ data });
+  const { expectedFamilyIds, ...rest } = data;
+  return prisma.event.create({
+      data: {
+          ...rest,
+          expectedFamilies: expectedFamilyIds ? {
+              connect: expectedFamilyIds.map(id => ({ id }))
+          } : undefined
+      }
+  });
 }
 
-export async function listEvents(params?: { scope?: "upcoming" | "past" }) {
+export async function listEvents(params?: {
+  scope?: "upcoming" | "past";
+  divisionId?: string;
+}) {
   const now = new Date();
-  let where: Record<string, unknown> | undefined;
+  const where: Record<string, unknown> = {};
 
   if (params?.scope === "upcoming") {
-    where = { startTime: { gte: now } };
+    where.startTime = { gte: now };
   } else if (params?.scope === "past") {
-    where = { endTime: { lt: now } };
+    where.endTime = { lt: now };
+  }
+
+  if (params?.divisionId) {
+    where.divisionId = params.divisionId;
   }
 
   return prisma.event.findMany({
-    where,
+    where: Object.keys(where).length ? where : undefined,
     orderBy: { startTime: "asc" },
-    include: { division: true },
+    include: { division: true, expectedFamilies: true },
   });
 }
 
@@ -37,12 +53,25 @@ export async function updateEvent(
     endTime: Date;
     location?: string;
     divisionId?: string;
+    expectedFamilyIds?: string[];
   }>,
 ) {
-  return prisma.event.update({ where: { id }, data });
+  const { expectedFamilyIds, ...rest } = data;
+  return prisma.event.update({ 
+      where: { id },
+      data: {
+          ...rest,
+          expectedFamilies: expectedFamilyIds ? {
+              set: expectedFamilyIds.map(fid => ({ id: fid }))
+          } : undefined
+      }
+  });
 }
 
 export async function deleteEvent(id: string) {
-  await prisma.event.delete({ where: { id } });
+  await prisma.$transaction([
+    prisma.attendance.deleteMany({ where: { eventId: id } }),
+    prisma.event.delete({ where: { id } }),
+  ]);
 }
 

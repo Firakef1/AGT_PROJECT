@@ -1,120 +1,268 @@
-import React from "react";
-import { CalendarCheck, Clock, Sparkles, ArrowLeft } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ArrowLeft, Loader2, CheckCircle, XCircle, TrendingUp } from "lucide-react";
+import { apiFetch } from "../../services/apiFetch";
 
-const FEATURES = [
-  "Weekly & monthly attendance tracking",
-  "Member check-in and check-out records",
-  "Attendance reports and trend charts",
-  "Absence alerts and follow-up reminders",
-  "Family group attendance summaries",
-  "Export attendance data to CSV / PDF",
-];
+const AttendancePage = ({ user, onNavigate }) => {
+  const myDivisionId = user?.member?.divisionId ?? null;
+  const [divisions, setDivisions] = useState([]);
+  const [divisionId, setDivisionId] = useState(myDivisionId || "");
+  const [events, setEvents] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [attendance, setAttendance] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
+  const [marking, setMarking] = useState(null);
+  const [participationSummary, setParticipationSummary] = useState(null);
 
-/**
- * AttendancePage
- *
- * Placeholder page for the Attendance module.
- * Communicates what is planned and lets the user navigate back.
- *
- * Props:
- *   onNavigate {function} – navigate to another dashboard page
- */
-const AttendancePage = ({ onNavigate }) => {
-  const accentColor  = "#1a56db";
-  const accentBg     = "#e8f0fe";
-  const accentBorder = "#bfdbfe";
+  const fetchDivisions = async () => {
+    try {
+      const data = await apiFetch("/divisions");
+      setDivisions(Array.isArray(data) ? data : []);
+    } catch {
+      setDivisions([]);
+    }
+  };
+
+  const fetchEventsAndMembers = async () => {
+    if (!divisionId) {
+      setEvents([]);
+      setMembers([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      const [eventsRes, membersRes] = await Promise.all([
+        apiFetch(`/events?divisionId=${encodeURIComponent(divisionId)}`),
+        apiFetch("/members").then((list) =>
+          Array.isArray(list)
+            ? list.filter((m) => m.status === "APPROVED" && m.divisionId === divisionId)
+            : []
+        ),
+      ]);
+      setEvents(Array.isArray(eventsRes) ? eventsRes : []);
+      setMembers(Array.isArray(membersRes) ? membersRes : []);
+      if (!selectedEventId && eventsRes?.length) setSelectedEventId(eventsRes[0].id);
+      else if (selectedEventId && !eventsRes?.some((e) => e.id === selectedEventId))
+        setSelectedEventId(eventsRes?.length ? eventsRes[0].id : null);
+    } catch (err) {
+      console.error("Failed to load data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchParticipationSummary = async () => {
+    if (!divisionId) {
+      setParticipationSummary(null);
+      return;
+    }
+    try {
+      const data = await apiFetch(`/attendance/division/${divisionId}/summary`);
+      setParticipationSummary(data);
+    } catch {
+      setParticipationSummary(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchDivisions();
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchEventsAndMembers();
+  }, [divisionId]);
+
+  useEffect(() => {
+    fetchParticipationSummary();
+  }, [divisionId]);
+
+  useEffect(() => {
+    if (!selectedEventId) {
+      setAttendance([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingAttendance(true);
+    apiFetch(`/attendance/event/${selectedEventId}`)
+      .then((data) => { if (!cancelled) setAttendance(Array.isArray(data) ? data : []); })
+      .catch(() => { if (!cancelled) setAttendance([]); })
+      .finally(() => { if (!cancelled) setLoadingAttendance(false); });
+    return () => { cancelled = true; };
+  }, [selectedEventId]);
+
+  const getStatusForMember = (memberId) => {
+    const record = attendance.find((a) => a.memberId === memberId);
+    return record?.status || null;
+  };
+
+  const mark = async (memberId, status) => {
+    if (!selectedEventId) return;
+    setMarking(memberId);
+    try {
+      await apiFetch("/attendance", {
+        method: "POST",
+        body: JSON.stringify({ memberId, eventId: selectedEventId, status }),
+      });
+      const [updated, summary] = await Promise.all([
+        apiFetch(`/attendance/event/${selectedEventId}`),
+        divisionId ? apiFetch(`/attendance/division/${divisionId}/summary`) : null,
+      ]);
+      setAttendance(Array.isArray(updated) ? updated : []);
+      if (summary) setParticipationSummary(summary);
+    } catch (err) {
+      alert(err.message || "Failed to mark attendance");
+    } finally {
+      setMarking(null);
+    }
+  };
+
+  const formatDate = (d) => (d ? new Date(d).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : "—");
+
+  if (loading) {
+    return (
+      <div className="members-loading">
+        <Loader2 size={32} className="spin" />
+      </div>
+    );
+  }
+
+  const pctClass = (pct) =>
+    pct >= 70 ? "attendance-pct-high" : pct >= 40 ? "attendance-pct-mid" : "attendance-pct-low";
 
   return (
-    <div className="placeholder-page">
-
-      {/* Icon bubble */}
-      <div
-        className="placeholder-icon-wrap"
-        style={{
-          background:  accentBg,
-          border:      `2px solid ${accentBorder}`,
-          boxShadow:   `0 8px 28px ${accentColor}22`,
-        }}
-      >
-        <CalendarCheck size={40} color={accentColor} />
-      </div>
-
-      {/* Headline block */}
-      <div className="placeholder-content">
+    <div className="attendance-page">
+      <div className="attendance-page-header">
         <h1>Attendance</h1>
-        <p
-          className="placeholder-tagline"
-          style={{ color: accentColor }}
-        >
-          Track presence, spot patterns, follow up on absences.
-        </p>
-        <p>
-          The Attendance module is currently under development. Once live, it
-          will let division leaders record and review member attendance across
-          all meetings, services, and fellowship events.
-        </p>
+        <p>Track attendance by event and view participation overview for your division.</p>
       </div>
 
-      {/* "Coming Soon" badge */}
-      <div
-        className="placeholder-badge"
-        style={{
-          background:  accentBg,
-          color:       accentColor,
-          borderColor: accentBorder,
-        }}
-      >
-        <Clock size={13} />
-        Coming Soon
-      </div>
-
-      {/* Planned features card */}
-      <div className="placeholder-features-card">
-        <div className="placeholder-features-header">
-          <Sparkles size={14} color={accentColor} />
-          <span className="placeholder-features-label">Planned Features</span>
+      {divisions.length > 0 && (
+        <div className="mem-form-group attendance-division-select-wrap">
+          <label className="mem-form-label">Division</label>
+          <select
+            className="mem-form-select"
+            value={divisionId}
+            onChange={(e) => setDivisionId(e.target.value)}
+          >
+            <option value="">— Select division —</option>
+            {divisions.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
         </div>
+      )}
 
-        <ul className="placeholder-feature-list">
-          {FEATURES.map((feature, idx) => (
-            <li key={idx} className="placeholder-feature-item">
-              <span
-                className="placeholder-feature-dot"
-                style={{ background: accentColor }}
-              />
-              {feature}
-            </li>
+      {participationSummary && (
+        <div className="attendance-participation-card">
+          <div className="attendance-participation-header">
+            <TrendingUp size={18} color="var(--blue)" aria-hidden />
+            <strong>Participation overview</strong>
+            <span className="attendance-participation-badge">
+              ({participationSummary.totalDivisionEvents} division events)
+            </span>
+          </div>
+          <div className="attendance-table-wrap">
+            <table className="attendance-table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Present</th>
+                  <th>Participation</th>
+                </tr>
+              </thead>
+              <tbody>
+                {participationSummary.members.map((row) => (
+                  <tr key={row.memberId}>
+                    <td>{row.fullName} <span className="attendance-secondary-text">({row.email})</span></td>
+                    <td>{row.presentCount} / {row.totalEvents}</td>
+                    <td>
+                      <span className={pctClass(row.participationPercentage)}>
+                        {row.participationPercentage}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {participationSummary.members.length === 0 && (
+            <p className="attendance-empty-cell">No members in this division yet.</p>
+          )}
+        </div>
+      )}
+
+      <div className="mem-form-group attendance-event-select-wrap">
+        <label className="mem-form-label">Select Event</label>
+        <select
+          className="mem-form-select"
+          value={selectedEventId || ""}
+          onChange={(e) => setSelectedEventId(e.target.value || null)}
+        >
+          <option value="">— Select event —</option>
+          {events.map((ev) => (
+            <option key={ev.id} value={ev.id}>{ev.title} — {formatDate(ev.startTime)}</option>
           ))}
-        </ul>
+        </select>
       </div>
 
-      {/* Action buttons */}
-      <div className="placeholder-actions">
-        <button
-          className="placeholder-btn-primary"
-          style={{
-            background: accentColor,
-            color:      "#fff",
-          }}
-          onClick={() => onNavigate("overview")}
-        >
-          <ArrowLeft size={14} />
-          Back to Overview
-        </button>
+      {!divisionId ? (
+        <p className="members-hint-text">Select a division to see events and mark attendance.</p>
+      ) : !selectedEventId ? (
+        <p className="members-hint-text">Select an event to mark attendance.</p>
+      ) : loadingAttendance ? (
+        <div className="attendance-loading-row">
+          <Loader2 size={20} className="spin" aria-hidden /> Loading attendance…
+        </div>
+      ) : (
+        <div className="attendance-participation-card">
+          <div className="attendance-table-wrap">
+            <table className="attendance-table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Status</th>
+                  <th>Mark</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((m) => {
+                  const status = getStatusForMember(m.id);
+                  const busy = marking === m.id;
+                  return (
+                    <tr key={m.id}>
+                      <td>{m.fullName} <span className="attendance-secondary-text">({m.email})</span></td>
+                      <td>
+                        {status === "PRESENT" && <span className="attendance-status-present">Present</span>}
+                        {status === "ABSENT" && <span className="attendance-status-absent">Absent</span>}
+                        {status === "EXCUSED" && <span className="attendance-status-excused">Excused</span>}
+                        {!status && <span className="attendance-status-none">—</span>}
+                      </td>
+                      <td>
+                        <div className="attendance-mark-buttons">
+                          <button type="button" className="mem-modal-btn cancel" disabled={busy} onClick={() => mark(m.id, "PRESENT")}><CheckCircle size={14} aria-hidden /> Present</button>
+                          <button type="button" className="mem-modal-btn cancel" disabled={busy} onClick={() => mark(m.id, "ABSENT")}><XCircle size={14} aria-hidden /> Absent</button>
+                          <button type="button" className="mem-modal-btn cancel" disabled={busy} onClick={() => mark(m.id, "EXCUSED")}>Excused</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {members.length === 0 && (
+            <p className="attendance-empty-cell">No approved members to show. Approve members first from the Members page.</p>
+          )}
+        </div>
+      )}
 
-        <button
-          className="placeholder-btn-secondary"
-          onClick={() => onNavigate("members")}
-        >
-          Go to Members
+      <div className="members-page-back">
+        <button type="button" className="placeholder-btn-secondary" onClick={() => onNavigate("overview")}>
+          <ArrowLeft size={14} /> Back to Overview
         </button>
       </div>
-
-      {/* Footer note */}
-      <p className="placeholder-footer-note">
-        Use the sidebar to navigate to any available section. This page will be
-        replaced once the Attendance module is fully launched.
-      </p>
     </div>
   );
 };

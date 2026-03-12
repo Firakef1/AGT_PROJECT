@@ -15,8 +15,21 @@ datasource db {
 
 enum Role {
   ADMIN
+  MEMBERS_MANAGER
   DIVISION_HEAD
   MEMBER
+}
+
+enum MemberStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Language {
+  AFAN_OROMO
+  AMHARIC
+  BOTH
 }
 
 model Division {
@@ -30,10 +43,22 @@ model Division {
   updatedAt   DateTime @updatedAt
 }
 
+model Family {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  leaderId    String?  @unique
+  leader      Member?  @relation("FamilyLeader", fields: [leaderId], references: [id])
+  members     Member[] @relation("FamilyMembers")
+  events      Event[]  @relation("EventToFamily")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
-  password  String
+  password  String?
   googleId  String?  @unique
   fullName  String
   role      Role     @default(MEMBER)
@@ -46,10 +71,19 @@ model Member {
   id           String        @id @default(uuid())
   studentId    String        @unique
   fullName     String
+  gender       String
   email        String        @unique
   phone        String?
-  divisionId   String
-  division     Division      @relation(fields: [divisionId], references: [id])
+  status       MemberStatus  @default(PENDING)
+  divisionId   String?
+  division     Division?     @relation(fields: [divisionId], references: [id])
+  divisionJoinedAt DateTime?
+  familyId     String?
+  family       Family?       @relation("FamilyMembers", fields: [familyId], references: [id])
+  ledFamily    Family?       @relation("FamilyLeader")
+  familyRole   String?
+  section      Int?
+  language     Language?
   userId       String?       @unique
   user         User?         @relation(fields: [userId], references: [id])
   attendances  Attendance[]
@@ -66,6 +100,7 @@ model Event {
   location     String?
   divisionId   String?
   division     Division?     @relation(fields: [divisionId], references: [id])
+  expectedFamilies Family[]  @relation("EventToFamily")
   attendances  Attendance[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -108,4 +143,20 @@ model FinanceTransaction {
   division    Division?       @relation(fields: [divisionId], references: [id])
   occurredAt  DateTime        @default(now())
   createdAt   DateTime        @default(now())
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model GeneratedReport {
+  id        String   @id @default(uuid())
+  name      String
+  type      String
+  format    String
+  sizeBytes Int
+  createdAt DateTime @default(now())
 }

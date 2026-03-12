@@ -27,7 +27,10 @@ const familyPalette = [
   { color: "#0891b2", bg: "#e0f2fe" },
 ];
 
-const getFamilyPalette = (id) => familyPalette[(id - 1) % familyPalette.length];
+const getFamilyPalette = (id) => {
+  const n = typeof id === "string" ? id.split("").reduce((a, c) => a + c.charCodeAt(0), 0) : Number(id) || 0;
+  return familyPalette[Math.abs(n) % familyPalette.length];
+};
 
 /**
  * FamilyCard
@@ -42,8 +45,15 @@ const getFamilyPalette = (id) => familyPalette[(id - 1) % familyPalette.length];
 const FamilyCard = ({ family, members, onEdit, onDelete, onManageMembers }) => {
   const palette     = getFamilyPalette(family.id);
   const memberCount = members.filter((m) => m.familyId === family.id).length;
-  const leader      = members.find((m) => m.id === family.leaderId);
-  const leaderName  = leader ? leader.fullName : "No leader assigned";
+  // Prefer API-provided leader object; fallback to lookup in members by leaderId
+  const leaderFromApi = family.leader;
+  const leaderFromList = members.find((m) => String(m.id) === String(family.leaderId));
+  const leader = leaderFromApi || leaderFromList;
+  const leaderName  = leader ? (leader.fullName ?? "Leader") : "No leader assigned";
+
+  // Father / Mother from family.members (API includes members with familyRole)
+  const father = family.members?.find((m) => m.familyRole === "FATHER");
+  const mother = family.members?.find((m) => m.familyRole === "MOTHER");
 
   // Leader avatar style
   const leaderStyle = leader ? getAvatarStyle(leader.id) : { color: "#6b7280", bg: "#f3f4f6" };
@@ -98,6 +108,20 @@ const FamilyCard = ({ family, members, onEdit, onDelete, onManageMembers }) => {
                 {leaderName}
               </span>
             </div>
+            {/* Father / Mother */}
+            {(father || mother) && (
+              <div
+                style={{
+                  fontSize: "0.75rem",
+                  color: "var(--text-secondary)",
+                  marginTop: "0.25rem",
+                }}
+              >
+                {father && <span>Father: {father.fullName}</span>}
+                {father && mother && " · "}
+                {mother && <span>Mother: {mother.fullName}</span>}
+              </div>
+            )}
           </div>
         </div>
 

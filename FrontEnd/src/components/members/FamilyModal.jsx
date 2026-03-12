@@ -25,15 +25,20 @@ const FamilyModal = ({ isOpen, onClose, onSubmit, initialData, members }) => {
   // ── Form state — initialised from props each time the component mounts ──────
   // The parent passes a changing `key` prop so React remounts this component
   // fresh whenever the modal opens with different data (create vs. edit).
-  const [form, setForm] = useState(() =>
-    initialData
-      ? {
-          name: initialData.name ?? "",
-          leaderId: initialData.leaderId ?? null,
-          description: initialData.description ?? "",
-        }
-      : { ...EMPTY_FAMILY_FORM },
-  );
+  const [form, setForm] = useState(() => {
+    if (initialData) {
+      const father = initialData.members?.find((m) => m.familyRole === "FATHER");
+      const mother = initialData.members?.find((m) => m.familyRole === "MOTHER");
+      return {
+        name: initialData.name ?? "",
+        leaderId: initialData.leaderId ?? null,
+        fatherId: father?.id ?? null,
+        motherId: mother?.id ?? null,
+        description: initialData.description ?? "",
+      };
+    }
+    return { ...EMPTY_FAMILY_FORM };
+  });
   const [errors, setErrors] = useState({});
 
   // Close on Escape key
@@ -61,9 +66,10 @@ const FamilyModal = ({ isOpen, onClose, onSubmit, initialData, members }) => {
     onSubmit({
       id: initialData?.id ?? Date.now(),
       name: form.name.trim(),
-      leaderId: form.leaderId ? Number(form.leaderId) : null,
+      leaderId: form.leaderId && String(form.leaderId).trim() ? String(form.leaderId).trim() : null,
+      fatherId: form.fatherId && String(form.fatherId).trim() ? String(form.fatherId).trim() : null,
+      motherId: form.motherId && String(form.motherId).trim() ? String(form.motherId).trim() : null,
       description: form.description.trim(),
-      // Preserve original creation date when editing; set today for new families
       createdAt:
         initialData?.createdAt ?? new Date().toISOString().slice(0, 10),
     });
@@ -71,8 +77,9 @@ const FamilyModal = ({ isOpen, onClose, onSubmit, initialData, members }) => {
 
   if (!isOpen) return null;
 
-  // ── Selected leader preview ──────────────────────────────────────────────────
-  const selectedLeader = members.find((m) => m.id === Number(form.leaderId));
+  // ── Selected leader preview (leader options = approved members only) ─────────
+  const leaderIdStr = form.leaderId != null ? String(form.leaderId) : "";
+  const selectedLeader = members.find((m) => String(m.id) === leaderIdStr);
   const leaderStyle = selectedLeader ? getAvatarStyle(selectedLeader.id) : null;
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -192,7 +199,7 @@ const FamilyModal = ({ isOpen, onClose, onSubmit, initialData, members }) => {
                       color: "var(--text-secondary)",
                     }}
                   >
-                    {selectedLeader.role} · {selectedLeader.status}
+                    {selectedLeader.status ?? "—"}
                   </div>
                 </div>
               </div>
@@ -201,7 +208,7 @@ const FamilyModal = ({ isOpen, onClose, onSubmit, initialData, members }) => {
             {/* Dropdown */}
             <select
               className="mem-form-select"
-              value={form.leaderId ?? ""}
+              value={leaderIdStr}
               onChange={(e) =>
                 handleChange(
                   "leaderId",
@@ -210,9 +217,9 @@ const FamilyModal = ({ isOpen, onClose, onSubmit, initialData, members }) => {
               }
             >
               <option value="">— No leader assigned —</option>
-              {/* Show only Active members as potential leaders */}
+              {/* Only approved members can be chosen as group leader */}
               {members
-                .filter((m) => m.status === "Active")
+                .filter((m) => m.status === "APPROVED")
                 .map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.fullName} ({m.role})
@@ -227,7 +234,58 @@ const FamilyModal = ({ isOpen, onClose, onSubmit, initialData, members }) => {
                 marginTop: "0.35rem",
               }}
             >
-              Only active members are available for selection as group leader.
+              Only approved members are available for selection as group leader.
+            </p>
+          </div>
+
+          {/* Father */}
+          <div className="mem-form-group">
+            <label className="mem-form-label">Father</label>
+            <select
+              className="mem-form-select"
+              value={form.fatherId != null ? String(form.fatherId) : ""}
+              onChange={(e) =>
+                handleChange("fatherId", e.target.value === "" ? null : e.target.value)
+              }
+            >
+              <option value="">— No father assigned —</option>
+              {members
+                .filter((m) => m.status === "APPROVED")
+                .map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.fullName} ({m.gender ?? "—"})
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Mother */}
+          <div className="mem-form-group">
+            <label className="mem-form-label">Mother</label>
+            <select
+              className="mem-form-select"
+              value={form.motherId != null ? String(form.motherId) : ""}
+              onChange={(e) =>
+                handleChange("motherId", e.target.value === "" ? null : e.target.value)
+              }
+            >
+              <option value="">— No mother assigned —</option>
+              {members
+                .filter((m) => m.status === "APPROVED")
+                .map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.fullName} ({m.gender ?? "—"})
+                  </option>
+                ))}
+            </select>
+            <p
+              style={{
+                fontSize: "0.77rem",
+                color: "var(--text-light)",
+                marginTop: "0.35rem",
+              }}
+            >
+              Optional. Only approved members can be selected.
             </p>
           </div>
 
